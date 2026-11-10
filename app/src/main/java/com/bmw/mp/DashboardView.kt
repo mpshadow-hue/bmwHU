@@ -87,11 +87,9 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
             BluetoothAdapter.getDefaultAdapter()?.isEnabled == true
         } catch (_: Exception) { false }
         panel(c, 462f, 64f, 62f, 58f)
-        label(c, if (wifiOn) "◔" else "×", 493f, 105f, 38f, if (wifiOn) gold else Color.GRAY, true, Paint.Align.CENTER)
-        panel(c, 756f, 64f, 62f, 58f)
-        label(c, "ᛒ", 787f, 105f, 38f, if (bluetoothOn) gold else Color.GRAY, true, Paint.Align.CENTER)
-        label(c, if (wifiOn) "on" else "off", 493f, 139f, 12f, white, false, Paint.Align.CENTER)
-        label(c, if (bluetoothOn) "on" else "off", 787f, 139f, 12f, white, false, Paint.Align.CENTER)
+        panel(c, 787f, 64f, 62f, 58f)
+        drawBluetoothSymbol(c, 818f, 93f, if (bluetoothOn) gold else Color.GRAY)
+        drawWifiSymbol(c, 493f, 93f, if (wifiOn) gold else Color.GRAY)
         postInvalidateDelayed(2_000L)
 
         panel(c, 12f, 8f, 400f, 102f)
@@ -102,7 +100,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         metric(c, 215f, 123f, "max/tdy", String.format(Locale.US, "%.0f", maxKmh), "km/h", "◴")
 
         panel(c, 12f, 210f, 400f, 335f)
-        panel(c, 25f, 557f, 160f, 38f); label(c, "● GPS $gpsUsed/$gpsVisible", 40f, 583f, 18f, white, true)
+        panel(c, 25f, 549f, 160f, 38f); label(c, "● GPS $gpsUsed/$gpsVisible", 40f, 575f, 18f, white, true)
 
         // Speedometer
         val cx = 640f; val cy = 260f
@@ -140,11 +138,11 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         label(c,musicTracks.getOrNull(currentTrackIndex)?.title ?: "Nema odabrane pjesme",640f,425f,21f,white,false,Paint.Align.CENTER)
         val bars = intArrayOf(20,28,35,43,31,24,40,52,35,47,57,43,30,48,38,25)
         bars.forEachIndexed { i,h -> p.color=if(i%3==0) gold else orange
-            c.drawRect(460f+i*22f,500f-h,474f+i*22f,500f,p) }
-        media(c,505f,548f,"|◀",false); media(c,640f,548f,if(musicIsPlaying) "Ⅱ" else "▶",true); media(c,775f,548f,"▶|",false)
+            c.drawRect(460f+i*22f,478f-h,474f+i*22f,478f,p) }
+        media(c,505f,537f,"|◀",false); media(c,640f,537f,if(musicIsPlaying) "Ⅱ" else "▶",true); media(c,775f,537f,"▶|",false)
 
         // car music
-        panel(c,868f,8f,400f,537f)
+        panel(c,868f,8f,400f,558f)
         label(c,"↓",900f,48f,35f,gold,true,Paint.Align.CENTER)
         label(c,"car music",1080f,48f,26f,white,false,Paint.Align.CENTER)
         label(c,musicTracks.size.toString(),1225f,48f,18f,white,false,Paint.Align.RIGHT)
@@ -154,7 +152,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         } else {
             musicTracks.drop(playlistOffset).take(7).forEachIndexed { i, track ->
                 val absoluteIndex = i + playlistOffset
-                val y=88f+i*47f
+                val y=85f+i*47f
                 if(absoluteIndex==currentTrackIndex){
                     p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f
                     c.drawRoundRect(RectF(878f,y,1258f,y+43f),12f,12f,p);p.style=Paint.Style.FILL
@@ -165,22 +163,54 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                 p.color=Color.rgb(80,60,35); c.drawLine(882f,y+45f,1255f,y+45f,p)
             }
         }
-        panel(c,880f,465f,376f,66f)
-        label(c,if (shuffleEnabled) "⤨  Shuffle ON" else "⤨  Shuffle",910f,507f,21f,if (shuffleEnabled) gold else white)
-        label(c,"☷  A-Z",1090f,507f,21f,white)
+        panel(c,880f,479f,376f,66f)
+        label(c,if (shuffleEnabled) "⤨  Shuffle ON" else "⤨  Shuffle",910f,523f,21f,if (shuffleEnabled) gold else white)
+        label(c,"☷  A-Z",1090f,523f,21f,white)
 
         // Bottom menu: two custom app slots
-        panel(c,26f,612f,1228f,78f)
-        val xs=floatArrayOf(130f,375f,620f,865f,1110f)
-        val names=listOf("Mapa","Radio",slotLabel(0),slotLabel(1),"Aplikacije")
-        val icons=listOf("●","▣",if(names[2]=="+")"+" else "▣",if(names[3]=="+")"+" else "▣","▦")
-        names.forEachIndexed { i,n ->
-            label(c,icons[i],xs[i]-60f,660f,28f,if(n=="+")gold else orange,true,Paint.Align.CENTER)
-            label(c,n,xs[i]+8f,660f,if(n.length>11)15f else 21f,white)
-            if(i<4){p.color=orange;p.strokeWidth=1f;c.drawLine(xs[i]+122f,627f,xs[i]+122f,675f,p)}
-        }
-        if(notice.isNotEmpty()) label(c,notice,640f,605f,15f,gold,false,Paint.Align.CENTER)
+        panel(c,26f,606f,1228f,78f)
+        val separators = floatArrayOf(312f,562f,755f,945f)
+        separators.forEach { x -> p.color=orange;p.strokeWidth=1f;c.drawLine(x,621f,x,670f,p) }
+        label(c,"●",150f,652f,28f,orange,true,Paint.Align.CENTER)
+        label(c,"Mapa",188f,652f,21f,white)
+        label(c,"▣",400f,652f,28f,orange,true,Paint.Align.CENTER)
+        label(c,"Radio",438f,652f,21f,white)
+        val shortcut0 = slotLabel(0)
+        val shortcut1 = slotLabel(1)
+        label(c,if(shortcut0=="+") "+" else "▣",655f,652f,30f,if(shortcut0=="+") gold else orange,true,Paint.Align.CENTER)
+        if(shortcut0!="+") label(c,shortcut0.take(10),690f,652f,16f,white)
+        label(c,if(shortcut1=="+") "+" else "▣",850f,652f,30f,if(shortcut1=="+") gold else orange,true,Paint.Align.CENTER)
+        if(shortcut1!="+") label(c,shortcut1.take(10),885f,652f,16f,white)
+        label(c,"▦",1010f,652f,28f,white,true,Paint.Align.CENTER)
+        label(c,"Aplikacije",1068f,652f,21f,white)
+        if(notice.isNotEmpty()) label(c,notice,640f,596f,15f,gold,false,Paint.Align.CENTER)
         c.restore()
+    }
+
+    private fun drawWifiSymbol(c: Canvas, cx: Float, cy: Float, color: Int) {
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 5f
+        p.strokeCap = Paint.Cap.ROUND
+        p.color = color
+        for (radius in listOf(26f, 18f, 10f)) {
+            c.drawArc(RectF(cx-radius, cy-radius, cx+radius, cy+radius), 225f, 90f, false, p)
+        }
+        p.style = Paint.Style.FILL
+        c.drawCircle(cx, cy+15f, 4f, p)
+    }
+
+    private fun drawBluetoothSymbol(c: Canvas, cx: Float, cy: Float, color: Int) {
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 5f
+        p.strokeCap = Paint.Cap.ROUND
+        p.strokeJoin = Paint.Join.ROUND
+        p.color = color
+        val path = Path().apply {
+            moveTo(cx, cy-23f); lineTo(cx, cy+23f)
+            moveTo(cx, cy-23f); lineTo(cx+16f, cy-8f); lineTo(cx-13f, cy+8f); lineTo(cx+16f, cy+23f); lineTo(cx, cy+8f)
+        }
+        c.drawPath(path, p)
+        p.style = Paint.Style.FILL
     }
 
     private fun metric(c:Canvas,x:Float,y:Float,title:String,value:String,unit:String,icon:String){
@@ -405,7 +435,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                     catch (_: Exception) { notice = "Wi-Fi postavke nisu dostupne"; invalidate() }
                     return true
                 }
-                if (y in 55f..150f && x in 735f..835f) {
+                if (y in 55f..150f && x in 765f..875f) {
                     try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                     catch (_: Exception) { notice = "Bluetooth postavke nisu dostupne"; invalidate() }
                     return true
@@ -414,12 +444,12 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                     when { x in 455f..570f -> onPrevious(); x in 585f..695f -> onPlayPause(); x in 710f..835f -> onNext() }
                     return true
                 }
-                if (y in 465f..535f && x in 875f..1260f) {
+                if (y in 475f..545f && x in 875f..1260f) {
                     if (x < 1065f) { shuffleEnabled = !shuffleEnabled; onShuffle(); invalidate() } else onSort()
                     return true
                 }
                 if (y in 80f..430f && x in 875f..1260f) {
-                    val index = playlistOffset + ((y - 88f) / 47f).toInt()
+                    val index = playlistOffset + ((y - 85f) / 47f).toInt()
                     musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
                     return true
                 }
