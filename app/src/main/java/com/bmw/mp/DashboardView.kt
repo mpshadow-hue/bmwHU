@@ -14,7 +14,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.*
 
-class DashboardView(context: Context) : View(context) {
+class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) : View(context) {
     init { setLayerType(View.LAYER_TYPE_SOFTWARE, null) }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val orange = Color.rgb(255, 137, 0)
@@ -249,6 +249,26 @@ class DashboardView(context: Context) : View(context) {
         p.typeface=if(bold)Typeface.create("sans-serif",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)
         c.drawText(t,x,y,p)
     }
+
+    private fun openRadio() {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC)
+        val matches = context.packageManager.queryIntentActivities(intent, 0)
+        if (matches.isEmpty()) { notice = "Nije pronađena muzička/radio aplikacija"; invalidate(); return }
+        try { context.startActivity(Intent.createChooser(intent, "Otvori muziku ili radio").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        catch (_: Exception) { notice = "Radio aplikacija nije dostupna"; invalidate() }
+    }
+
+    private fun openAllApps() {
+        val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = context.packageManager.queryIntentActivities(query, 0).sortedBy { it.loadLabel(context.packageManager).toString().lowercase() }
+        if (apps.isEmpty()) { notice = "Nema pronađenih aplikacija"; invalidate(); return }
+        val labels = apps.map { it.loadLabel(context.packageManager).toString() }.toTypedArray()
+        AlertDialog.Builder(context).setTitle("Aplikacije").setItems(labels) { _, which ->
+            try { val launch = context.packageManager.getLaunchIntentForPackage(apps[which].activityInfo.packageName); launch?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); if (launch != null) context.startActivity(launch) }
+            catch (_: Exception) { notice = "Aplikacija se ne može pokrenuti"; invalidate() }
+        }.setNegativeButton("Zatvori", null).show()
+    }
+
     private fun handleShortcut(slot: Int) {
         val pkg = slotPackage(slot)
         if (pkg != null) {
@@ -298,9 +318,9 @@ class DashboardView(context: Context) : View(context) {
                 val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
                 when(i) {
                     2,3 -> handleShortcut(i-2)
-                    0 -> notice="Mapa – povezujemo u sljedećem koraku"
-                    1 -> notice="Radio – povezujemo u sljedećem koraku"
-                    4 -> notice="Aplikacije – povezujemo u sljedećem koraku"
+                    0 -> { onMapClick(); notice="Mapa – prikaz Sarajeva" }
+                    1 -> openRadio()
+                    4 -> openAllApps()
                 }
                 invalidate()
             }
