@@ -8,13 +8,15 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <application android:allowBackup="false" android:requestLegacyExternalStorage="true" android:label="bmw-mp"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+    <application android:allowBackup="false" android:requestLegacyExternalStorage="true" android:label="BMW MP"
+        android:theme="@style/BmwMpTheme">
         <activity android:name=".MainActivity" android:screenOrientation="landscape"
             android:configChanges="orientation|screenSize|keyboardHidden" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="android.intent.category.HOME"/>
+                <category android:name="android.intent.category.DEFAULT"/>
             </intent-filter>
         </activity>
     </application>
