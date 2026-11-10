@@ -15,6 +15,7 @@ import kotlin.random.Random
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
+import android.location.GpsStatus
 import android.os.Looper
 import java.time.LocalDate
 import java.time.YearMonth
@@ -44,6 +45,7 @@ class MainActivity : Activity() {
     private var statsDay = ""
     private var statsMonth = ""
     private val gpsListener = LocationListener { location -> onGpsLocation(location) }
+    private val gpsStatusListener = GpsStatus.Listener { updateSatelliteStatus() }
     private val musicTracks = mutableListOf<MusicTrack>()
     private var currentTrackIndex = -1
     private var mediaPlayer: MediaPlayer? = null
@@ -111,6 +113,7 @@ class MainActivity : Activity() {
             }
         }
         try {
+            locationManager.addGpsStatusListener(gpsStatusListener)
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper())
         } catch (_: SecurityException) { }
     }
@@ -220,6 +223,7 @@ class MainActivity : Activity() {
     }
 
     private fun onGpsLocation(location: Location) {
+        rollStatsPeriod()
         val speed = if (location.hasSpeed()) (location.speed * 3.6f).coerceAtLeast(0f) else 0f
         val previous = lastFix
         if (previous != null && location.time > previous.time) {
@@ -238,6 +242,30 @@ class MainActivity : Activity() {
         publishStats(speed)
     }
 
+    private fun rollStatsPeriod() {
+        val today = LocalDate.now().toString()
+        val month = YearMonth.now().toString()
+        if (today != statsDay) {
+            todayDistance = 0.0
+            maxSpeed = 0f
+            movingSeconds = 0L
+            statsDay = today
+        }
+        if (month != statsMonth) {
+            monthDistance = 0.0
+            statsMonth = month
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun updateSatelliteStatus() {
+        try {
+            val satellites = locationManager.getGpsStatus(null)?.satellites?.toList().orEmpty()
+            val used = satellites.count { it.usedInFix() }
+            if (::dashboard.isInitialized) dashboard.updateGpsSatellites(used, satellites.size)
+        } catch (_: SecurityException) { }
+    }
+
     private fun saveDrivingStats() {
         stats.edit().putString("day", statsDay).putString("month", statsMonth)
             .putFloat("today_km", todayDistance.toFloat()).putFloat("month_km", monthDistance.toFloat())
@@ -252,7 +280,10 @@ class MainActivity : Activity() {
     override fun onPause() {
         if (::mapView.isInitialized) mapView.onPause()
         if (::locationManager.isInitialized) {
-            try { locationManager.removeUpdates(gpsListener) } catch (_: SecurityException) { }
+            try {
+                locationManager.removeUpdates(gpsListener)
+                locationManager.removeGpsStatusListener(gpsStatusListener)
+            } catch (_: SecurityException) { }
         }
         super.onPause()
     }
@@ -262,7 +293,6 @@ class MainActivity : Activity() {
         if (::mapView.isInitialized) mapView.onResume()
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLiveLocation()
-            try { locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper()) } catch (_: SecurityException) { }
         }
     }
 }
