@@ -21,6 +21,20 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
     private val gold = Color.rgb(255, 190, 25)
     private val white = Color.WHITE
     private var notice = ""
+    private var liveSpeedKmh = 0f
+    private var todayKm = 0.0
+    private var monthKm = 0.0
+    private var averageKmh = 0f
+    private var maxKmh = 0f
+
+    fun updateDrivingStats(speedKmh: Float, today: Double, month: Double, average: Float, maximum: Float) {
+        liveSpeedKmh = speedKmh.coerceAtLeast(0f)
+        todayKm = today.coerceAtLeast(0.0)
+        monthKm = month.coerceAtLeast(0.0)
+        averageKmh = average.coerceAtLeast(0f)
+        maxKmh = maximum.coerceAtLeast(0f)
+        postInvalidate()
+    }
     private val appPrefs = context.getSharedPreferences("bottom_shortcuts", Context.MODE_PRIVATE)
     private fun slotPackage(slot: Int) = appPrefs.getString("slot_$slot", null)
     private fun slotLabel(slot: Int): String {
@@ -57,11 +71,11 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
         postInvalidateDelayed(2_000L)
 
         panel(c, 12f, 8f, 400f, 102f)
-        metric(c, 25f, 17f, "tdy", "12.4", "km", "╱")
-        metric(c, 215f, 17f, "mnth", "386", "km", "▦")
+        metric(c, 25f, 17f, "tdy", String.format(Locale.US, "%.1f", todayKm), "km", "╱")
+        metric(c, 215f, 17f, "mnth", String.format(Locale.US, "%.0f", monthKm), "km", "▦")
         panel(c, 12f, 118f, 400f, 82f)
-        metric(c, 25f, 123f, "avg/tdy", "42.3", "km/h", "◴")
-        metric(c, 215f, 123f, "max/tdy", "118", "km/h", "◴")
+        metric(c, 25f, 123f, "avg/tdy", String.format(Locale.US, "%.1f", averageKmh), "km/h", "◴")
+        metric(c, 215f, 123f, "max/tdy", String.format(Locale.US, "%.0f", maxKmh), "km/h", "◴")
 
         panel(c, 12f, 210f, 400f, 335f)
         panel(c, 25f, 557f, 160f, 38f); label(c, "● GPS 8/14", 40f, 583f, 18f, white, true)
@@ -88,7 +102,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
             label(c,n,cx+cos(a).toFloat()*145f,cy+sin(a).toFloat()*145f+8f,20f,white,false,Paint.Align.CENTER)
         }
         drawBmwRoundel(c,640f,260f,66f)
-        label(c,"68",598f,392f,58f,orange,true,Paint.Align.RIGHT)
+        label(c,String.format(Locale.US, "%.0f", liveSpeedKmh),598f,392f,58f,orange,true,Paint.Align.RIGHT)
         label(c,"km/h",605f,392f,29f,white)
         label(c,"Evening Drive.mp3",640f,425f,21f,white,false,Paint.Align.CENTER)
         val bars = intArrayOf(20,28,35,43,31,24,40,52,35,47,57,43,30,48,38,25)
