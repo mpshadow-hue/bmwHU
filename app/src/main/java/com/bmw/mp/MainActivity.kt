@@ -17,6 +17,8 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.location.GpsStatus
 import android.os.Looper
+import android.os.Handler
+import android.os.SystemClock
 import java.time.LocalDate
 import java.time.YearMonth
 import android.os.Bundle
@@ -50,6 +52,15 @@ class MainActivity : Activity() {
     private var currentTrackIndex = -1
     private var mediaPlayer: MediaPlayer? = null
     private var shufflePlayback = false
+    private val speedWatchdog = Handler(Looper.getMainLooper())
+    private val speedWatchdogTask = object : Runnable {
+        override fun run() {
+            val fix = lastFix
+            val stale = fix == null || SystemClock.elapsedRealtimeNanos() - fix.elapsedRealtimeNanos > 5_000_000_000L
+            if (stale) publishStats(0f)
+            speedWatchdog.postDelayed(this, 2000L)
+        }
+    }
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -319,6 +330,8 @@ class MainActivity : Activity() {
     }
 
     override fun onPause() {
+        speedWatchdog.removeCallbacks(speedWatchdogTask)
+        publishStats(0f)
         if (::mapView.isInitialized) mapView.onPause()
         if (::locationManager.isInitialized) {
             try {
@@ -336,6 +349,8 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        speedWatchdog.removeCallbacks(speedWatchdogTask)
+        speedWatchdog.post(speedWatchdogTask)
         if (::mapView.isInitialized) mapView.onResume()
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             enableLiveLocation()
