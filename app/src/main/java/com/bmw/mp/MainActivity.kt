@@ -3,6 +3,13 @@ package com.bmw.mp
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
+import android.content.Context
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Looper
+import java.time.LocalDate
+import java.time.YearMonth
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
@@ -18,6 +25,17 @@ class MainActivity : Activity() {
     private lateinit var mapView: MapView
     private var locationOverlay: MyLocationNewOverlay? = null
     private val locationRequest = 701
+    private lateinit var dashboard: DashboardView
+    private lateinit var locationManager: LocationManager
+    private var lastFix: Location? = null
+    private val stats by lazy { getSharedPreferences("driving_stats", Context.MODE_PRIVATE) }
+    private var todayDistance = 0.0
+    private var monthDistance = 0.0
+    private var movingSeconds = 0L
+    private var maxSpeed = 0f
+    private var statsDay = ""
+    private var statsMonth = ""
+    private val gpsListener = LocationListener { location -> onGpsLocation(location) }
 
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,13 +53,16 @@ class MainActivity : Activity() {
             controller.setCenter(GeoPoint(43.8563, 18.4131))
             overlays.add(CopyrightOverlay(this@MainActivity))
         }
-        val root = FrameLayout(this)
-        root.addView(DashboardView(this) {
+        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        dashboard = DashboardView(this) {
             mapView.controller.setZoom(15.0)
             mapView.controller.animateTo(GeoPoint(43.8563, 18.4131))
             mapView.invalidate()
-        }, FrameLayout.LayoutParams(-1, -1))
+        }
+        val root = FrameLayout(this)
+        root.addView(dashboard, FrameLayout.LayoutParams(-1, -1))
         root.addView(mapView, FrameLayout.LayoutParams(1, 1))
+        loadDrivingStats()
         root.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
             val w=r-l; val h=b-t
             val scale=minOf(w/1280f,h/720f)
@@ -74,6 +95,9 @@ class MainActivity : Activity() {
             it.enableFollowLocation()
             mapView.overlays.add(it)
         }
+        try {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper())
+        } catch (_: SecurityException) { }
     }
 
     override fun onRequestPermissionsResult(requestCode:Int, permissions:Array<out String>, grantResults:IntArray) {
@@ -89,8 +113,70 @@ class MainActivity : Activity() {
             == PackageManager.PERMISSION_GRANTED) enableLiveLocation()
     }
 
+    private fun loadDrivingStats() {
+        val day = LocalDate.now().toString()
+        val month = YearMonth.now().toString()
+        statsDay = stats.getString("day", "") ?: ""
+        statsMonth = stats.getString("month", "") ?: ""
+        if (statsDay != day) {
+            todayDistance = 0.0
+            maxSpeed = 0f
+            movingSeconds = 0L
+            statsDay = day
+        } else {
+            todayDistance = stats.getFloat("today_km", 0f).toDouble()
+            maxSpeed = stats.getFloat("max_speed", 0f)
+            movingSeconds = stats.getLong("moving_seconds", 0L)
+        }
+        monthDistance = if (statsMonth == month) stats.getFloat("month_km", 0f).toDouble() else 0.0
+        statsMonth = month
+        publishStats(0f)
+    }
+
+    private fun onGpsLocation(location: Location) {
+        val speed = if (location.hasSpeed()) (location.speed * 3.6f).coerceAtLeast(0f) else 0f
+        val previous = lastFix
+        if (previous != null && location.time > previous.time) {
+            val delta = previous.distanceTo(location).toDouble()
+            val elapsed = ((location.time - previous.time) / 1000L).coerceIn(0L, 10L)
+            if (delta in 2.0..500.0 && speed > 2f) {
+                val km = delta / 1000.0
+                todayDistance += km
+                monthDistance += km
+                movingSeconds += elapsed
+            }
+        }
+        lastFix = location
+        if (speed > maxSpeed) maxSpeed = speed
+        saveDrivingStats()
+        publishStats(speed)
+    }
+
+    private fun saveDrivingStats() {
+        stats.edit().putString("day", statsDay).putString("month", statsMonth)
+            .putFloat("today_km", todayDistance.toFloat()).putFloat("month_km", monthDistance.toFloat())
+            .putFloat("max_speed", maxSpeed).putLong("moving_seconds", movingSeconds).apply()
+    }
+
+    private fun publishStats(speed: Float) {
+        val average = if (movingSeconds > 0L) (todayDistance * 3600.0 / movingSeconds).toFloat() else 0f
+        if (::dashboard.isInitialized) dashboard.updateDrivingStats(speed, todayDistance, monthDistance, average, maxSpeed)
+    }
+
     override fun onPause() {
         if (::mapView.isInitialized) mapView.onPause()
+        if (::locationManager.isInitialized) {
+            try { locationManager.removeUpdates(gpsListener) } catch (_: SecurityException) { }
+        }
         super.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::mapView.isInitialized) mapView.onResume()
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            enableLiveLocation()
+            try { locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper()) } catch (_: SecurityException) { }
+        }
     }
 }
