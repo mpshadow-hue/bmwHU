@@ -213,6 +213,43 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         p.style = Paint.Style.FILL
     }
 
+    private fun drawMetricIcon(c: Canvas, cx: Float, cy: Float, type: String) {
+        p.style = Paint.Style.STROKE
+        p.color = gold
+        p.strokeWidth = 2.5f
+        p.strokeCap = Paint.Cap.ROUND
+        p.strokeJoin = Paint.Join.ROUND
+        when (type) {
+            "route" -> {
+                val path = Path().apply {
+                    moveTo(cx-12f,cy+12f)
+                    cubicTo(cx-18f,cy-2f,cx-1f,cy-17f,cx+4f,cy-7f)
+                    cubicTo(cx+8f,cy+1f,cx-3f,cy+2f,cx+8f,cy+13f)
+                }
+                c.drawPath(path,p)
+                p.style = Paint.Style.FILL
+                c.drawCircle(cx-12f,cy+12f,3f,p)
+                c.drawCircle(cx+8f,cy+13f,3f,p)
+            }
+            "calendar" -> {
+                c.drawRoundRect(RectF(cx-14f,cy-12f,cx+14f,cy+13f),3f,3f,p)
+                c.drawLine(cx-14f,cy-4f,cx+14f,cy-4f,p)
+                c.drawLine(cx-7f,cy-16f,cx-7f,cy-8f,p)
+                c.drawLine(cx+7f,cy-16f,cx+7f,cy-8f,p)
+                p.style = Paint.Style.FILL
+                c.drawCircle(cx-6f,cy+3f,2f,p)
+                c.drawCircle(cx+3f,cy+3f,2f,p)
+            }
+            else -> {
+                c.drawArc(RectF(cx-15f,cy-15f,cx+15f,cy+15f),190f,160f,false,p)
+                c.drawLine(cx,cy,cx+9f,cy-7f,p)
+                p.style = Paint.Style.FILL
+                c.drawCircle(cx,cy,3f,p)
+            }
+        }
+        p.style = Paint.Style.FILL
+    }
+
     private fun metric(c:Canvas,x:Float,y:Float,title:String,value:String,unit:String,icon:String){
         label(c,title,x+92f,y+20f,17f,white,false,Paint.Align.CENTER)
         drawMetricIcon(c,x+20f,y+47f,icon)
