@@ -106,13 +106,6 @@ class MainActivity : Activity() {
             grantResults[0]==PackageManager.PERMISSION_GRANTED) enableLiveLocation()
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (::mapView.isInitialized) mapView.onResume()
-        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-            == PackageManager.PERMISSION_GRANTED) enableLiveLocation()
-    }
-
     private fun loadDrivingStats() {
         val day = LocalDate.now().toString()
         val month = YearMonth.now().toString()
