@@ -1,6 +1,8 @@
 package com.bmw.mp
 
 import android.content.Context
+import android.content.Intent
+import android.app.AlertDialog
 import android.graphics.*
 import android.view.MotionEvent
 import android.view.View
@@ -12,6 +14,15 @@ class DashboardView(context: Context) : View(context) {
     private val gold = Color.rgb(255, 190, 25)
     private val white = Color.WHITE
     private var notice = ""
+    private val appPrefs = context.getSharedPreferences("bottom_shortcuts", Context.MODE_PRIVATE)
+    private fun slotPackage(slot: Int) = appPrefs.getString("slot_$slot", null)
+    private fun slotLabel(slot: Int): String {
+        val pkg = slotPackage(slot) ?: return "+"
+        return try {
+            val app = context.packageManager.getApplicationInfo(pkg, 0)
+            context.packageManager.getApplicationLabel(app).toString()
+        } catch (_: Exception) { "+" }
+    }
 
     override fun onDraw(c: Canvas) {
         super.onDraw(c)
@@ -83,11 +94,11 @@ class DashboardView(context: Context) : View(context) {
         // Bottom menu: two custom app slots
         panel(c,26f,612f,1228f,78f)
         val xs=floatArrayOf(130f,375f,620f,865f,1110f)
-        val names=listOf("Mapa","Radio","+","+","Aplikacije")
-        val icons=listOf("●","▣","+","+","▦")
+        val names=listOf("Mapa","Radio",slotLabel(0),slotLabel(1),"Aplikacije")
+        val icons=listOf("●","▣",if(names[2]=="+")"+" else "▣",if(names[3]=="+")"+" else "▣","▦")
         names.forEachIndexed { i,n ->
             label(c,icons[i],xs[i]-60f,660f,28f,if(n=="+")gold else orange,true,Paint.Align.CENTER)
-            label(c,n,xs[i]+8f,660f,21f,white)
+            label(c,n,xs[i]+8f,660f,if(n.length>11)15f else 21f,white)
             if(i<4){p.color=orange;p.strokeWidth=1f;c.drawLine(xs[i]+122f,627f,xs[i]+122f,675f,p)}
         }
         if(notice.isNotEmpty()) label(c,notice,640f,605f,15f,gold,false,Paint.Align.CENTER)
@@ -132,13 +143,51 @@ class DashboardView(context: Context) : View(context) {
         p.typeface=if(bold)Typeface.create("sans-serif",Typeface.BOLD) else Typeface.create("sans-serif",Typeface.NORMAL)
         c.drawText(t,x,y,p)
     }
+    private fun handleShortcut(slot: Int) {
+        val pkg = slotPackage(slot)
+        if (pkg != null) {
+            val launch = context.packageManager.getLaunchIntentForPackage(pkg)
+            if (launch != null) {
+                launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(launch)
+                return
+            }
+        }
+        val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val apps = context.packageManager.queryIntentActivities(query, 0)
+            .sortedBy { it.loadLabel(context.packageManager).toString().lowercase() }
+        if (apps.isEmpty()) {
+            notice = "Nema pronađenih aplikacija"
+            invalidate()
+            return
+        }
+        val labels = apps.map { it.loadLabel(context.packageManager).toString() }.toTypedArray()
+        AlertDialog.Builder(context)
+            .setTitle("Odaberi aplikaciju")
+            .setItems(labels) { _, which ->
+                val chosen = apps[which].activityInfo.packageName
+                appPrefs.edit().putString("slot_$slot", chosen).apply()
+                notice = "Dodano: " + labels[which]
+                invalidate()
+            }
+            .setNegativeButton("Odustani", null)
+            .show()
+    }
+
     override fun onTouchEvent(e:MotionEvent):Boolean{
         if(e.action==MotionEvent.ACTION_UP){
             val s=min(width/1280f,height/720f)
             val x=(e.x-(width-1280f*s)/2f)/s;val y=(e.y-(height-720f*s)/2f)/s
-            if(y in 612f..700f){val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
-                notice=when(i){0->"Mapa – slijedi povezivanje";1->"Radio – slijedi povezivanje";2,3->"Dodavanje aplikacije – slijedi";else->"Aplikacije – slijedi povezivanje"}
-                invalidate()}
+            if(y in 612f..700f){
+                val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
+                when(i) {
+                    2,3 -> handleShortcut(i-2)
+                    0 -> notice="Mapa – povezujemo u sljedećem koraku"
+                    1 -> notice="Radio – povezujemo u sljedećem koraku"
+                    4 -> notice="Aplikacije – povezujemo u sljedećem koraku"
+                }
+                invalidate()
+            }
         }
         return true
     }
