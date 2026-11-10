@@ -25,6 +25,10 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
     private var currentTrackIndex = -1
     private var musicIsPlaying = false
     private var shuffleEnabled = false
+    private var playlistOffset = 0
+    private var touchDownX = 0f
+    private var touchDownY = 0f
+    private var listSwipeHandled = false
     private var liveSpeedKmh = 0f
     private var todayKm = 0.0
     private var monthKm = 0.0
@@ -33,6 +37,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
 
     fun updateMusicLibrary(tracks: List<MusicTrack>, currentIndex: Int, isPlaying: Boolean) {
         musicTracks = tracks
+        playlistOffset = playlistOffset.coerceIn(0, (musicTracks.size - 7).coerceAtLeast(0))
         currentTrackIndex = currentIndex
         musicIsPlaying = isPlaying
         postInvalidate()
@@ -96,21 +101,21 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         p.style = Paint.Style.STROKE
         p.color = Color.rgb(255,65,0); p.strokeWidth = 22f
         p.setShadowLayer(22f,0f,0f,Color.rgb(255,55,0))
-        c.drawArc(RectF(455f,72f,825f,442f),135f,270f,false,p)
+        c.drawArc(RectF(444f,64f,836f,456f),135f,270f,false,p)
         p.clearShadowLayer()
         p.color = orange; p.strokeWidth = 8f
         c.drawArc(RectF(455f,72f,825f,442f),135f,270f,false,p)
         p.color = gold; p.strokeWidth = 3f
         for (i in 0..40) {
             val a = Math.toRadians(135.0 + i*6.75)
-            val r1 = 166f; val r2 = if (i%4==0) 187f else 178f
+            val r1 = 175f; val r2 = if (i%4==0) 196f else 186f
             c.drawLine(cx+cos(a).toFloat()*r1,cy+sin(a).toFloat()*r1,
                 cx+cos(a).toFloat()*r2,cy+sin(a).toFloat()*r2,p)
         }
         p.style = Paint.Style.FILL
         listOf("0","20","40","60","80","100","120","140","160","180","200").forEachIndexed { i,n ->
             val a = Math.toRadians(135.0+i*27.0)
-            label(c,n,cx+cos(a).toFloat()*145f,cy+sin(a).toFloat()*145f+8f,20f,white,false,Paint.Align.CENTER)
+            label(c,n,cx+cos(a).toFloat( )*151f,cy+sin(a).toFloat()*151f+8f,20f,white,false,Paint.Align.CENTER)
         }
         drawBmwRoundel(c,640f,260f,66f)
         label(c,String.format(Locale.US, "%.0f", liveSpeedKmh),598f,392f,58f,orange,true,Paint.Align.RIGHT)
@@ -130,13 +135,14 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         if (musicTracks.isEmpty()) {
             label(c,"Nema pronađene muzike",1065f,235f,19f,Color.LTGRAY,false,Paint.Align.CENTER)
         } else {
-            musicTracks.take(7).forEachIndexed { i, track ->
+            musicTracks.drop(playlistOffset).take(7).forEachIndexed { i, track ->
+                val absoluteIndex = i + playlistOffset
                 val y=88f+i*47f
-                if(i==currentTrackIndex){
+                if(absoluteIndex==currentTrackIndex){
                     p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f
                     c.drawRoundRect(RectF(878f,y,1258f,y+43f),12f,12f,p);p.style=Paint.Style.FILL
                 }
-                label(c,if(i==currentTrackIndex && musicIsPlaying)"▶" else "♫",895f,y+29f,23f,gold,true)
+                label(c,if(absoluteIndex==currentTrackIndex && musicIsPlaying)"▶" else "♫",895f,y+29f,23f,gold,true)
                 label(c,track.title.take(29),930f,y+28f,16f,white)
                 label(c,track.dateLabel,1245f,y+28f,16f,white,false,Paint.Align.RIGHT)
                 p.color=Color.rgb(80,60,35); c.drawLine(882f,y+45f,1255f,y+45f,p)
@@ -330,69 +336,63 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
             .show()
     }
 
-    override fun onTouchEvent(e:MotionEvent):Boolean{
-        if(e.action==MotionEvent.ACTION_UP){
-            val s=min(width/1280f,height/720f)
-            val x=(e.x-(width-1280f*s)/2f)/s;val y=(e.y-(height-720f*s)/2f)/s
-            if (y in 55f..150f && x in 440f..535f) {
-                try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (_: Exception) { notice = "Wi-Fi postavke nisu dostupne" }
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        val scale = min(width / 1280f, height / 720f)
+        val x = (e.x - (width - 1280f * scale) / 2f) / scale
+        val y = (e.y - (height - 720f * scale) / 2f) / scale
+        when (e.action) {
+            MotionEvent.ACTION_DOWN -> {
+                touchDownX = x
+                touchDownY = y
+                listSwipeHandled = false
                 return true
             }
-            if (y in 55f..150f && x in 735f..835f) {
-                try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-                catch (_: Exception) { notice = "Bluetooth postavke nisu dostupne" }
-                return true
-            }
-            if (y in 500f..595f) {
-                when {
-                    x in 455f..570f -> onPrevious()
-                    x in 585f..695f -> onPlayPause()
-                    x in 710f..835f -> onNext()
-                }
-                return true
-            }
-            if (y in 465f..535f && x in 875f..1260f) {
-                if (x < 1065f) onShuffle() else onSort()
-                return true
-            }
-            if (y in 80f..430f && x in 875f..1260f) {
-                val index = ((y - 88f) / 47f).toInt()
-                musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
-                return true
-            }
-            if (y in 500f..595f) {
-                when {
-                    x in 455f..570f -> onPrevious()
-                    x in 585f..695f -> onPlayPause()
-                    x in 710f..835f -> onNext()
-                }
-                return true
-            }
-            if (y in 465f..535f && x in 875f..1260f) {
-                if (x < 1065f) {
-                    shuffleEnabled = !shuffleEnabled
-                    onShuffle()
+            MotionEvent.ACTION_MOVE -> {
+                if (touchDownX in 875f..1260f && touchDownY in 80f..430f && x in 875f..1260f && abs(y - touchDownY) > 28f) {
+                    val step = if (y < touchDownY) 1 else -1
+                    playlistOffset = (playlistOffset + step).coerceIn(0, (musicTracks.size - 7).coerceAtLeast(0))
+                    touchDownY = y
+                    listSwipeHandled = true
                     invalidate()
-                } else {
-                    onSort()
                 }
                 return true
             }
-            if (y in 80f..430f && x in 875f..1260f) {
-                val index = ((y - 88f) / 47f).toInt()
-                musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
-                return true
-            }
-            if(y in 612f..700f){
-                val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
-                when(i) {
-                    2,3 -> handleShortcut(i-2)
-                    0 -> { onMapClick(); notice="Mapa – prikaz Sarajeva" }
-                    1 -> openRadio()
-                    4 -> openAllApps()
+            MotionEvent.ACTION_UP -> {
+                if (listSwipeHandled) return true
+                if (y in 55f..150f && x in 440f..535f) {
+                    try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    catch (_: Exception) { notice = "Wi-Fi postavke nisu dostupne"; invalidate() }
+                    return true
                 }
-                invalidate()
+                if (y in 55f..150f && x in 735f..835f) {
+                    try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    catch (_: Exception) { notice = "Bluetooth postavke nisu dostupne"; invalidate() }
+                    return true
+                }
+                if (y in 500f..595f) {
+                    when { x in 455f..570f -> onPrevious(); x in 585f..695f -> onPlayPause(); x in 710f..835f -> onNext() }
+                    return true
+                }
+                if (y in 465f..535f && x in 875f..1260f) {
+                    if (x < 1065f) { shuffleEnabled = !shuffleEnabled; onShuffle(); invalidate() } else onSort()
+                    return true
+                }
+                if (y in 80f..430f && x in 875f..1260f) {
+                    val index = playlistOffset + ((y - 88f) / 47f).toInt()
+                    musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
+                    return true
+                }
+                if (y in 612f..700f) {
+                    val index = ((x - 26f) / (1228f / 5f)).toInt().coerceIn(0, 4)
+                    when (index) {
+                        2, 3 -> handleShortcut(index - 2)
+                        0 -> { onMapClick(); notice = "Mapa – prikaz Sarajeva" }
+                        1 -> openRadio()
+                        4 -> openAllApps()
+                    }
+                    invalidate()
+                }
+                return true
             }
         }
         return true
