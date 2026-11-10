@@ -143,9 +143,37 @@ class MainActivity : Activity() {
                     val date = cursor.getLong(dateColumn)
                     val uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, id)
                     val dateLabel = if (date > 0L) SimpleDateFormat("dd.MM.", Locale.getDefault()).format(Date(date * 1000L)) else ""
-                    loaded.add(MusicTrack(uri, title, dateLabel))
+                    if (!title.endsWith(".mp4", true) && !title.endsWith(".mkv", true) && !title.endsWith(".3gp", true)) loaded.add(MusicTrack(uri, title, dateLabel, date))
                 }
             }
+        } catch (_: Exception) { }
+        try {
+            val videoProjection = arrayOf(
+                MediaStore.Video.Media._ID,
+                MediaStore.Video.Media.DISPLAY_NAME,
+                MediaStore.Video.Media.DATE_ADDED,
+                MediaStore.Video.Media.DURATION
+            )
+            contentResolver.query(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                videoProjection,
+                MediaStore.Video.Media.DURATION + " > 0",
+                null,
+                MediaStore.Video.Media.DATE_ADDED + " DESC"
+            )?.use { cursor ->
+                val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID)
+                val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
+                val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED)
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idColumn)
+                    val title = cursor.getString(nameColumn) ?: "Video"
+                    val date = cursor.getLong(dateColumn)
+                    val uri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id)
+                    val dateLabel = if (date > 0L) SimpleDateFormat("dd.MM.", Locale.getDefault()).format(Date(date * 1000L)) else ""
+                    loaded.add(MusicTrack(uri, title, dateLabel, date))
+                }
+            }
+            loaded.sortByDescending { it.dateAdded }
         } catch (_: Exception) { }
         val currentUri = musicTracks.getOrNull(currentTrackIndex)?.uri
         musicTracks.clear(); musicTracks.addAll(loaded)
