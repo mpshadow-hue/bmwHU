@@ -68,7 +68,12 @@ class DashboardView(context: Context) : View(context) {
 
         // Speedometer
         val cx = 640f; val cy = 260f
-        p.style = Paint.Style.STROKE; p.color = orange; p.strokeWidth = 8f
+        p.style = Paint.Style.STROKE
+        p.color = Color.rgb(255,65,0); p.strokeWidth = 22f
+        p.setShadowLayer(22f,0f,0f,Color.rgb(255,55,0))
+        c.drawArc(RectF(455f,72f,825f,442f),135f,270f,false,p)
+        p.clearShadowLayer()
+        p.color = orange; p.strokeWidth = 8f
         c.drawArc(RectF(455f,72f,825f,442f),135f,270f,false,p)
         p.color = gold; p.strokeWidth = 3f
         for (i in 0..40) {
@@ -162,25 +167,36 @@ class DashboardView(context: Context) : View(context) {
         p.style=Paint.Style.FILL
     }
     private fun drawBmwRoundel(c:Canvas,cx:Float,cy:Float,r:Float){
+        // Black outer ring with warm backlight
         p.style=Paint.Style.FILL;p.color=Color.BLACK
-        p.setShadowLayer(18f,0f,0f,Color.rgb(255,75,0))
+        p.setShadowLayer(18f,0f,0f,Color.rgb(255,65,0))
         c.drawCircle(cx,cy,r,p);p.clearShadowLayer()
-        p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=3f
-        c.drawCircle(cx,cy,r-2f,p);c.drawCircle(cx,cy,r-17f,p)
+        p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=2.5f
+        c.drawCircle(cx,cy,r-2f,p)
+        // Inner BMW roundel: four alternating blue/white quadrants
+        val inner=RectF(cx-42f,cy-42f,cx+42f,cy+42f)
         p.style=Paint.Style.FILL
-        val blue=Color.rgb(0,160,220)
-        val a=Path().apply{moveTo(cx,cy-42f);lineTo(cx+42f,cy-42f);lineTo(cx+42f,cy);lineTo(cx,cy);close()}
-        p.color=blue;c.drawPath(a,p)
-        val b=Path().apply{moveTo(cx,cy);lineTo(cx-42f,cy);lineTo(cx-42f,cy+42f);lineTo(cx,cy+42f);close()}
-        c.drawPath(b,p)
+        p.color=Color.WHITE;c.drawArc(inner,180f,90f,true,p)
+        p.color=Color.rgb(0,160,220);c.drawArc(inner,270f,90f,true,p)
+        p.color=Color.WHITE;c.drawArc(inner,0f,90f,true,p)
+        p.color=Color.rgb(0,160,220);c.drawArc(inner,90f,90f,true,p)
         p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=2f
-        c.drawCircle(cx,cy,42f,p);c.drawCircle(cx,cy,65f,p);p.style=Paint.Style.FILL
-        label(c,"B",cx-38f,cy-46f,18f,white,true)
-        label(c,"M",cx-7f,cy-51f,18f,white,true)
-        label(c,"W",cx+27f,cy-39f,18f,white,true)
+        c.drawCircle(cx,cy,42f,p)
+        // BMW lettering follows the upper arc of the black ring
+        p.style=Paint.Style.FILL;p.color=Color.WHITE
+        p.textSize=13f;p.typeface=Typeface.create("sans-serif",Typeface.BOLD)
+        p.textAlign=Paint.Align.CENTER
+        val arc=Path().apply{addArc(RectF(cx-54f,cy-54f,cx+54f,cy+54f),205f,130f)}
+        c.drawTextOnPath("B M W",arc,0f,0f,p)
+        p.style=Paint.Style.STROKE;p.strokeWidth=2f;p.color=Color.WHITE
+        c.drawCircle(cx,cy,r-2f,p)
+        p.style=Paint.Style.FILL
     }
     private fun media(c:Canvas,x:Float,y:Float,t:String,big:Boolean){
-        p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2.5f;c.drawCircle(x,y,if(big)48f else 36f,p)
+        p.color=Color.rgb(255,70,0);p.style=Paint.Style.STROKE;p.strokeWidth=12f
+        p.setShadowLayer(16f,0f,0f,Color.rgb(255,55,0))
+        c.drawCircle(x,y,if(big)48f else 36f,p);p.clearShadowLayer()
+        p.color=orange;p.strokeWidth=2.5f;c.drawCircle(x,y,if(big)48f else 36f,p)
         p.style=Paint.Style.FILL;label(c,t,x,y+11f,if(big)34f else 24f,white,true,Paint.Align.CENTER)
     }
     private fun label(c:Canvas,t:String,x:Float,y:Float,size:Float,color:Int,bold:Boolean=false,align:Paint.Align=Paint.Align.LEFT){
