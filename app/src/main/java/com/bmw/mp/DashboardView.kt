@@ -14,18 +14,29 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.*
 
-class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) : View(context) {
+class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, private val onTrackSelected: (MusicTrack) -> Unit = {}, private val onPrevious: () -> Unit = {}, private val onPlayPause: () -> Unit = {}, private val onNext: () -> Unit = {}, private val onShuffle: () -> Unit = {}, private val onSort: () -> Unit = {}) : View(context) {
     init { setLayerType(View.LAYER_TYPE_SOFTWARE, null) }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val orange = Color.rgb(255, 137, 0)
     private val gold = Color.rgb(255, 190, 25)
     private val white = Color.WHITE
     private var notice = ""
+    private var musicTracks: List<MusicTrack> = emptyList()
+    private var currentTrackIndex = -1
+    private var musicIsPlaying = false
+    private var shuffleEnabled = false
     private var liveSpeedKmh = 0f
     private var todayKm = 0.0
     private var monthKm = 0.0
     private var averageKmh = 0f
     private var maxKmh = 0f
+
+    fun updateMusicLibrary(tracks: List<MusicTrack>, currentIndex: Int, isPlaying: Boolean) {
+        musicTracks = tracks
+        currentTrackIndex = currentIndex
+        musicIsPlaying = isPlaying
+        postInvalidate()
+    }
 
     fun updateDrivingStats(speedKmh: Float, today: Double, month: Double, average: Float, maximum: Float) {
         liveSpeedKmh = speedKmh.coerceAtLeast(0f)
@@ -104,30 +115,35 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
         drawBmwRoundel(c,640f,260f,66f)
         label(c,String.format(Locale.US, "%.0f", liveSpeedKmh),598f,392f,58f,orange,true,Paint.Align.RIGHT)
         label(c,"km/h",605f,392f,29f,white)
-        label(c,"Evening Drive.mp3",640f,425f,21f,white,false,Paint.Align.CENTER)
+        label(c,musicTracks.getOrNull(currentTrackIndex)?.title ?: "Nema odabrane pjesme",640f,425f,21f,white,false,Paint.Align.CENTER)
         val bars = intArrayOf(20,28,35,43,31,24,40,52,35,47,57,43,30,48,38,25)
         bars.forEachIndexed { i,h -> p.color=if(i%3==0) gold else orange
             c.drawRect(460f+i*22f,500f-h,474f+i*22f,500f,p) }
-        media(c,505f,548f,"◀|",false); media(c,640f,548f,"Ⅱ",true); media(c,775f,548f,"|▶",false)
+        media(c,505f,548f,"|◀",false); media(c,640f,548f,if(musicIsPlaying) "Ⅱ" else "▶",true); media(c,775f,548f,"▶|",false)
 
         // car music
         panel(c,868f,8f,400f,537f)
         label(c,"↓",900f,48f,35f,gold,true,Paint.Align.CENTER)
         label(c,"car music",1080f,48f,26f,white,false,Paint.Align.CENTER)
-        label(c,"2326",1225f,48f,18f,white,false,Paint.Align.RIGHT)
+        label(c,musicTracks.size.toString(),1225f,48f,18f,white,false,Paint.Align.RIGHT)
         p.color=Color.GREEN; c.drawCircle(1248f,22f,7f,p)
-        val tracks=listOf("VID-20261110-WA0005.mp4","VID-20261110-WA0004.mp4","Evening Drive.mp3",
-            "Retro Gaming.mp3","Autoput.mp3","Stari Hitovi.mp3","Ljetna Vožnja.mp3")
-        tracks.forEachIndexed { i,t ->
-            val y=88f+i*47f
-            if(i==0){p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f
-                c.drawRoundRect(RectF(878f,y,1258f,y+43f),12f,12f,p);p.style=Paint.Style.FILL}
-            label(c,if(i<2)"▶" else "♪",895f,y+29f,23f,gold,true)
-            label(c,t,930f,y+28f,16f,white)
-            p.color=Color.rgb(80,60,35); c.drawLine(882f,y+45f,1255f,y+45f,p)
+        if (musicTracks.isEmpty()) {
+            label(c,"Nema pronađene muzike",1065f,235f,19f,Color.LTGRAY,false,Paint.Align.CENTER)
+        } else {
+            musicTracks.take(7).forEachIndexed { i, track ->
+                val y=88f+i*47f
+                if(i==currentTrackIndex){
+                    p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f
+                    c.drawRoundRect(RectF(878f,y,1258f,y+43f),12f,12f,p);p.style=Paint.Style.FILL
+                }
+                label(c,if(i==currentTrackIndex && musicIsPlaying)"▶" else "♫",895f,y+29f,23f,gold,true)
+                label(c,track.title.take(29),930f,y+28f,16f,white)
+                label(c,track.dateLabel,1245f,y+28f,16f,white,false,Paint.Align.RIGHT)
+                p.color=Color.rgb(80,60,35); c.drawLine(882f,y+45f,1255f,y+45f,p)
+            }
         }
         panel(c,880f,465f,376f,66f)
-        label(c,"⤨  Shuffle",910f,507f,21f,white)
+        label(c,shuffleEnabled ? "⤨  Shuffle ON" : "⤨  Shuffle",910f,507f,21f,shuffleEnabled ? gold : white)
         label(c,"☷  A-Z",1090f,507f,21f,white)
 
         // Bottom menu: two custom app slots
@@ -338,6 +354,29 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
             }
             if (y in 465f..535f && x in 875f..1260f) {
                 if (x < 1065f) onShuffle() else onSort()
+                return true
+            }
+            if (y in 80f..430f && x in 875f..1260f) {
+                val index = ((y - 88f) / 47f).toInt()
+                musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
+                return true
+            }
+            if (y in 500f..595f) {
+                when {
+                    x in 455f..570f -> onPrevious()
+                    x in 585f..695f -> onPlayPause()
+                    x in 710f..835f -> onNext()
+                }
+                return true
+            }
+            if (y in 465f..535f && x in 875f..1260f) {
+                if (x < 1065f) {
+                    shuffleEnabled = !shuffleEnabled
+                    onShuffle()
+                    invalidate()
+                } else {
+                    onSort()
+                }
                 return true
             }
             if (y in 80f..430f && x in 875f..1260f) {
