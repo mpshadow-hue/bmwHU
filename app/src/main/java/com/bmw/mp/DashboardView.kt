@@ -72,7 +72,7 @@ class DashboardView(context: Context) : View(context) {
         p.color = gold; p.strokeWidth = 3f
         for (i in 0..40) {
             val a = Math.toRadians(135.0 + i*6.75)
-            val r1 = 166.0; val r2 = if (i%4==0) 187.0 else 178.0
+            val r1 = 166f; val r2 = if (i%4==0) 187f else 178f
             c.drawLine(cx+cos(a).toFloat()*r1,cy+sin(a).toFloat()*r1,
                 cx+cos(a).toFloat()*r2,cy+sin(a).toFloat()*r2,p)
         }
