@@ -14,7 +14,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.*
 
-class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, private val onTrackSelected: (MusicTrack) -> Unit = {}, private val onPrevious: () -> Unit = {}, private val onPlayPause: () -> Unit = {}, private val onNext: () -> Unit = {}, private val onShuffle: () -> Unit = {}, private val onSort: () -> Unit = {}) : View(context) {
+class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, private val onTrackSelected: (MusicTrack) -> Unit = {}, private val onPrevious: () -> Unit = {}, private val onPlayPause: () -> Unit = {}, private val onNext: () -> Unit = {}, private val onShuffle: () -> Unit = {}, private val onSort: () -> Unit = {}, private val onReloadMusic: () -> Unit = {}) : View(context) {
     init { setLayerType(View.LAYER_TYPE_SOFTWARE, null) }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val orange = Color.rgb(255, 137, 0)
@@ -430,6 +430,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
             }
             MotionEvent.ACTION_UP -> {
                 if (listSwipeHandled) return true
+                if (y in 8f..70f && x in 875f..935f) { onReloadMusic(); return true }
                 if (y in 55f..150f && x in 440f..535f) {
                     try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
                     catch (_: Exception) { notice = "Wi-Fi postavke nisu dostupne"; invalidate() }
