@@ -29,6 +29,8 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
     private var touchDownX = 0f
     private var touchDownY = 0f
     private var listSwipeHandled = false
+    private var gpsUsed = 0
+    private var gpsVisible = 0
     private var liveSpeedKmh = 0f
     private var todayKm = 0.0
     private var monthKm = 0.0
@@ -40,6 +42,12 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         playlistOffset = playlistOffset.coerceIn(0, (musicTracks.size - 7).coerceAtLeast(0))
         currentTrackIndex = currentIndex
         musicIsPlaying = isPlaying
+        postInvalidate()
+    }
+
+    fun updateGpsSatellites(used: Int, visible: Int) {
+        gpsUsed = used.coerceAtLeast(0)
+        gpsVisible = visible.coerceAtLeast(0)
         postInvalidate()
     }
 
@@ -94,7 +102,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         metric(c, 215f, 123f, "max/tdy", String.format(Locale.US, "%.0f", maxKmh), "km/h", "◴")
 
         panel(c, 12f, 210f, 400f, 335f)
-        panel(c, 25f, 557f, 160f, 38f); label(c, "● GPS 8/14", 40f, 583f, 18f, white, true)
+        panel(c, 25f, 557f, 160f, 38f); label(c, "● GPS $gpsUsed/$gpsVisible", 40f, 583f, 18f, white, true)
 
         // Speedometer
         val cx = 640f; val cy = 260f
