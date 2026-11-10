@@ -139,20 +139,65 @@ class DashboardView(context: Context) : View(context) {
         p.color=orange;p.strokeWidth=1f;c.drawLine(x+185f,y+3f,x+185f,y+69f,p)
     }
     private fun drawMap(c:Canvas){
-        p.color=Color.rgb(8,28,24);c.drawRect(14f,212f,410f,543f,p)
-        for(i in 0..9){p.color=if(i%2==0)Color.rgb(25,66,53) else Color.rgb(17,48,48)
-            p.strokeWidth=1f;c.drawLine(18f,230f+i*31f,407f,220f+i*32f,p)
-            c.drawLine(24f+i*39f,214f,20f+i*40f,542f,p)}
-        p.color=Color.rgb(0,150,220);p.strokeWidth=3f
-        val river=Path().apply{moveTo(18f,480f);cubicTo(120f,400f,160f,460f,220f,360f);cubicTo(270f,300f,330f,340f,410f,245f)}
-        c.drawPath(river,p)
-        p.color=gold;p.strokeWidth=7f
-        val route=Path().apply{moveTo(205f,215f);cubicTo(230f,280f,245f,320f,230f,380f);cubicTo(220f,435f,245f,485f,235f,545f)}
-        c.drawPath(route,p)
-        p.color=Color.RED;c.drawCircle(230f,390f,21f,p);p.color=white;c.drawCircle(230f,390f,14f,p)
-        label(c,"▲",230f,398f,24f,Color.BLUE,true,Paint.Align.CENTER)
-        label(c,"Sarajevo",295f,355f,23f,white);label(c,"60",62f,495f,25f,white,true)
-        label(c,"M18",350f,525f,22f,white,true);label(c,"▣",215f,310f,25f,white);label(c,"▣",245f,480f,25f,white)
+        val save=c.save()
+        c.clipRect(14f,212f,410f,543f)
+        p.style=Paint.Style.FILL
+        val bg=Paint(Paint.ANTI_ALIAS_FLAG).apply{shader=LinearGradient(14f,212f,410f,543f,Color.rgb(4,27,23),Color.rgb(5,12,20),Shader.TileMode.CLAMP)}
+        c.drawRect(14f,212f,410f,543f,bg)
+        // Dense city blocks and green areas
+        val blocks=arrayOf(
+            floatArrayOf(20f,220f,65f,265f),floatArrayOf(75f,220f,126f,257f),
+            floatArrayOf(140f,218f,184f,270f),floatArrayOf(250f,220f,300f,265f),
+            floatArrayOf(320f,220f,400f,275f),floatArrayOf(25f,285f,82f,335f),
+            floatArrayOf(95f,280f,145f,335f),floatArrayOf(285f,285f,345f,340f),
+            floatArrayOf(350f,290f,405f,345f),floatArrayOf(22f,430f,75f,475f),
+            floatArrayOf(90f,440f,145f,495f),floatArrayOf(290f,435f,350f,485f),
+            floatArrayOf(355f,430f,405f,490f),floatArrayOf(25f,500f,95f,540f),
+            floatArrayOf(315f,500f,400f,540f)
+        )
+        blocks.forEachIndexed{i,v->
+            p.color=when(i%4){0->Color.rgb(12,65,43);1->Color.rgb(15,48,43);2->Color.rgb(20,57,38);else->Color.rgb(10,43,42)}
+            c.drawRoundRect(RectF(v[0],v[1],v[2],v[3]),4f,4f,p)
+        }
+        // Fine street grid
+        p.color=Color.rgb(46,79,75);p.strokeWidth=1f
+        for(i in 0..13){val y=218f+i*25f;c.drawLine(14f,y,410f,y+if(i%2==0)8f else -5f,p)}
+        for(i in 0..15){val x=18f+i*26f;c.drawLine(x,212f,x+if(i%3==0)18f else -4f,545f,p)}
+        // Main arterial roads
+        p.color=Color.rgb(68,93,94);p.strokeWidth=5f
+        val roads=listOf(
+            Path().apply{moveTo(10f,300f);cubicTo(90f,325f,120f,350f,210f,360f);cubicTo(290f,375f,340f,420f,420f,430f)},
+            Path().apply{moveTo(25f,420f);cubicTo(110f,390f,160f,405f,230f,455f);cubicTo(300f,500f,350f,500f,420f,510f)},
+            Path().apply{moveTo(75f,210f);cubicTo(100f,280f,120f,350f,95f,545f)}
+        )
+        roads.forEach{c.drawPath(it,p)}
+        // Bright blue side roads
+        p.color=Color.rgb(0,153,235);p.strokeWidth=4f
+        val blue=Path().apply{moveTo(14f,460f);cubicTo(95f,420f,145f,405f,210f,355f);cubicTo(280f,300f,335f,315f,410f,245f)}
+        c.drawPath(blue,p)
+        val blue2=Path().apply{moveTo(45f,215f);cubicTo(85f,280f,75f,350f,125f,410f);cubicTo(165f,455f,180f,495f,205f,545f)}
+        c.drawPath(blue2,p)
+        // Main yellow navigation road and orange glow
+        val route=Path().apply{moveTo(165f,210f);cubicTo(195f,265f,215f,305f,228f,360f);cubicTo(242f,415f,250f,470f,240f,545f)}
+        p.color=Color.rgb(255,95,0);p.strokeWidth=14f;p.setShadowLayer(12f,0f,0f,Color.rgb(255,65,0));c.drawPath(route,p);p.clearShadowLayer()
+        p.color=Color.rgb(255,196,22);p.strokeWidth=6f;c.drawPath(route,p)
+        // Current location marker
+        p.color=Color.rgb(255,30,30);c.drawCircle(230f,390f,22f,p)
+        p.color=Color.WHITE;c.drawCircle(230f,390f,15f,p)
+        p.color=Color.rgb(0,115,240)
+        val arrow=Path().apply{moveTo(230f,378f);lineTo(239f,397f);lineTo(230f,393f);lineTo(221f,397f);close()}
+        c.drawPath(arrow,p)
+        // Camera markers and road labels
+        p.color=Color.RED;c.drawCircle(215f,315f,19f,p);c.drawCircle(285f,480f,19f,p)
+        p.color=Color.WHITE;c.drawCircle(215f,315f,13f,p);c.drawCircle(285f,480f,13f,p)
+        label(c,"▣",215f,322f,18f,Color.BLACK,true,Paint.Align.CENTER)
+        label(c,"▣",285f,487f,18f,Color.BLACK,true,Paint.Align.CENTER)
+        p.color=Color.RED;c.drawCircle(62f,490f,32f,p);p.color=Color.WHITE;c.drawCircle(62f,490f,25f,p)
+        label(c,"60",62f,500f,26f,Color.BLACK,true,Paint.Align.CENTER)
+        label(c,"Sarajevo",292f,365f,24f,white,true)
+        p.color=Color.rgb(0,105,220);c.drawRoundRect(RectF(326f,510f,390f,540f),5f,5f,p)
+        label(c,"M18",358f,532f,20f,white,true,Paint.Align.CENTER)
+        c.restoreToCount(save)
     }
     private fun panel(c:Canvas,x:Float,y:Float,w:Float,h:Float){
         val rect=RectF(x,y,x+w,y+h)
