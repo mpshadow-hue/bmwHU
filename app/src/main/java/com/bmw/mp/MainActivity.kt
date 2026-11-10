@@ -6,7 +6,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
-import androidx.core.content.ContextCompat
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -82,7 +81,7 @@ class MainActivity : Activity() {
     override fun onResume() {
         super.onResume()
         if (::mapView.isInitialized) mapView.onResume()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
             == PackageManager.PERMISSION_GRANTED) enableLiveLocation()
     }
 
