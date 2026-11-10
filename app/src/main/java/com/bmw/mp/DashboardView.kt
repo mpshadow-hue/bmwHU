@@ -153,13 +153,26 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
             musicTracks.drop(playlistOffset).take(7).forEachIndexed { i, track ->
                 val absoluteIndex = i + playlistOffset
                 val y=85f+i*47f
-                if(absoluteIndex==currentTrackIndex){
-                    p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f
-                    c.drawRoundRect(RectF(878f,y,1258f,y+43f),12f,12f,p);p.style=Paint.Style.FILL
+                if (absoluteIndex == currentTrackIndex) {
+                    val active = RectF(878f, y, 1258f, y + 43f)
+                    p.shader = LinearGradient(878f, y, 1258f, y + 43f,
+                        intArrayOf(Color.rgb(255, 185, 0), Color.rgb(255, 75, 0), Color.rgb(155, 35, 0)),
+                        null, Shader.TileMode.CLAMP)
+                    p.style = Paint.Style.FILL
+                    p.setShadowLayer(16f, 0f, 0f, Color.rgb(255, 95, 0))
+                    c.drawRoundRect(active, 12f, 12f, p)
+                    p.clearShadowLayer()
+                    p.shader = null
+                    p.style = Paint.Style.STROKE
+                    p.strokeWidth = 2.5f
+                    p.color = Color.rgb(255, 225, 90)
+                    c.drawRoundRect(active, 12f, 12f, p)
+                    p.style = Paint.Style.FILL
                 }
-                label(c,if(absoluteIndex==currentTrackIndex && musicIsPlaying)"▶" else "♫",895f,y+29f,23f,gold,true)
-                label(c,track.title.take(29),930f,y+28f,16f,white)
-                label(c,track.dateLabel,1245f,y+28f,16f,white,false,Paint.Align.RIGHT)
+                label(c, if (absoluteIndex == currentTrackIndex && musicIsPlaying) "▶" else if (absoluteIndex == currentTrackIndex) "♫" else "♫",
+                    895f, y + 29f, 23f, if (absoluteIndex == currentTrackIndex) Color.WHITE else gold, true)
+                label(c, track.title.take(29), 930f, y + 28f, 18f, white, absoluteIndex == currentTrackIndex)
+                label(c, track.dateLabel, 1245f, y + 28f, 16f, white, false, Paint.Align.RIGHT)
                 p.color=Color.rgb(80,60,35); c.drawLine(882f,y+45f,1255f,y+45f,p)
             }
         }
@@ -372,15 +385,21 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
     }
     private fun panel(c:Canvas,x:Float,y:Float,w:Float,h:Float){
         val rect=RectF(x,y,x+w,y+h)
-        p.style=Paint.Style.FILL;p.color=Color.rgb(12,7,3)
-        p.setShadowLayer(12f,0f,0f,Color.rgb(255,75,0))
-        c.drawRoundRect(rect,18f,18f,p);p.clearShadowLayer()
-        p.color=Color.rgb(255,105,0);p.style=Paint.Style.STROKE;p.strokeWidth=3f
-        p.setShadowLayer(10f,0f,0f,Color.rgb(255,70,0))
-        c.drawRoundRect(rect,18f,18f,p);p.clearShadowLayer()
-        p.color=Color.rgb(255,205,70);p.strokeWidth=1f
-        c.drawRoundRect(RectF(x+2f,y+2f,x+w-2f,y+h-2f),16f,16f,p)
-        p.style=Paint.Style.FILL
+        p.style = Paint.Style.FILL
+        p.color = Color.rgb(8, 4, 2)
+        p.setShadowLayer(20f, 0f, 0f, Color.rgb(255, 55, 0))
+        c.drawRoundRect(rect, 19f, 19f, p)
+        p.clearShadowLayer()
+        p.color = Color.rgb(255, 65, 0)
+        p.style = Paint.Style.STROKE
+        p.strokeWidth = 5f
+        p.setShadowLayer(15f, 0f, 0f, Color.rgb(255, 55, 0))
+        c.drawRoundRect(rect, 19f, 19f, p)
+        p.clearShadowLayer()
+        p.color = Color.rgb(255, 190, 35)
+        p.strokeWidth = 1.5f
+        c.drawRoundRect(RectF(x + 2f, y + 2f, x + w - 2f, y + h - 2f), 17f, 17f, p)
+        p.style = Paint.Style.FILL
     }
     private fun drawBmwRoundel(c:Canvas,cx:Float,cy:Float,r:Float){
         // Black outer ring with warm backlight
