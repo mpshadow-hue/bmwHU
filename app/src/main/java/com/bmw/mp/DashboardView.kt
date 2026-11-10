@@ -6,6 +6,9 @@ import android.app.AlertDialog
 import android.graphics.*
 import android.view.MotionEvent
 import android.view.View
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.*
 
 class DashboardView(context: Context) : View(context) {
@@ -32,7 +35,8 @@ class DashboardView(context: Context) : View(context) {
         c.scale(s, s)
         c.drawColor(Color.BLACK)
 
-        label(c, "15:36", 640f, 48f, 42f, white, true, Paint.Align.CENTER)
+        label(c, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()), 640f, 48f, 42f, white, true, Paint.Align.CENTER)
+        postInvalidateDelayed(30_000L)
         panel(c, 462f, 64f, 62f, 58f); label(c, "◔", 493f, 105f, 38f, gold, true, Paint.Align.CENTER)
         panel(c, 756f, 64f, 62f, 58f); label(c, "ᛒ", 787f, 105f, 38f, gold, true, Paint.Align.CENTER)
 
