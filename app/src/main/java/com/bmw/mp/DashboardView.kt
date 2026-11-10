@@ -93,11 +93,11 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         postInvalidateDelayed(2_000L)
 
         panel(c, 12f, 8f, 400f, 102f)
-        metric(c, 25f, 17f, "tdy", String.format(Locale.US, "%.1f", todayKm), "km", "╱")
-        metric(c, 215f, 17f, "mnth", String.format(Locale.US, "%.0f", monthKm), "km", "▦")
+        metric(c, 25f, 17f, "tdy", String.format(Locale.US, "%.1f", todayKm), "km", "route")
+        metric(c, 215f, 17f, "mnth", String.format(Locale.US, "%.0f", monthKm), "km", "calendar")
         panel(c, 12f, 118f, 400f, 82f)
-        metric(c, 25f, 123f, "avg/tdy", String.format(Locale.US, "%.1f", averageKmh), "km/h", "◴")
-        metric(c, 215f, 123f, "max/tdy", String.format(Locale.US, "%.0f", maxKmh), "km/h", "◴")
+        metric(c, 25f, 123f, "avg/tdy", String.format(Locale.US, "%.1f", averageKmh), "km/h", "speed")
+        metric(c, 215f, 123f, "max/tdy", String.format(Locale.US, "%.0f", maxKmh), "km/h", "speed")
 
         panel(c, 12f, 210f, 400f, 335f)
         panel(c, 25f, 549f, 160f, 38f); label(c, "● GPS $gpsUsed/$gpsVisible", 40f, 575f, 18f, white, true)
@@ -135,7 +135,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         drawBmwRoundel(c,640f,260f,66f)
         label(c,String.format(Locale.US, "%.0f", liveSpeedKmh),598f,392f,58f,orange,true,Paint.Align.RIGHT)
         label(c,"km/h",605f,392f,29f,white)
-        label(c,musicTracks.getOrNull(currentTrackIndex)?.title ?: "Nema odabrane pjesme",640f,425f,21f,white,false,Paint.Align.CENTER)
+        label(c,musicTracks.getOrNull(currentTrackIndex)?.title?.take(27) ?: "Nema odabrane pjesme",640f,425f,21f,white,false,Paint.Align.CENTER)
         val bars = intArrayOf(20,28,35,43,31,24,40,52,35,47,57,43,30,48,38,25)
         bars.forEachIndexed { i,h -> p.color=if(i%3==0) gold else orange
             c.drawRect(460f+i*22f,478f-h,474f+i*22f,478f,p) }
@@ -215,7 +215,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
 
     private fun metric(c:Canvas,x:Float,y:Float,title:String,value:String,unit:String,icon:String){
         label(c,title,x+92f,y+20f,17f,white,false,Paint.Align.CENTER)
-        label(c,icon,x+8f,y+61f,27f,gold,true)
+        drawMetricIcon(c,x+20f,y+47f,icon)
         label(c,value,x+55f,y+61f,30f,orange,true)
         p.textSize=30f;p.typeface=Typeface.DEFAULT_BOLD
         label(c,unit,x+60f+p.measureText(value),y+61f,18f,white)
@@ -304,10 +304,10 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         // Inner BMW roundel: four alternating blue/white quadrants
         val inner=RectF(cx-42f,cy-42f,cx+42f,cy+42f)
         p.style=Paint.Style.FILL
-        p.color=Color.WHITE;c.drawArc(inner,180f,90f,true,p)
-        p.color=Color.rgb(0,160,220);c.drawArc(inner,270f,90f,true,p)
-        p.color=Color.WHITE;c.drawArc(inner,0f,90f,true,p)
-        p.color=Color.rgb(0,160,220);c.drawArc(inner,90f,90f,true,p)
+        p.color=Color.rgb(0,160,220);c.drawArc(inner,180f,90f,true,p)
+        p.color=Color.WHITE;c.drawArc(inner,270f,90f,true,p)
+        p.color=Color.rgb(0,160,220);c.drawArc(inner,0f,90f,true,p)
+        p.color=Color.WHITE;c.drawArc(inner,90f,90f,true,p)
         p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=2f
         c.drawCircle(cx,cy,42f,p)
         // BMW lettering follows the upper arc of the black ring
