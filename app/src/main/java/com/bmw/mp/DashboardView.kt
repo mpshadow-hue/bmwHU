@@ -15,6 +15,7 @@ import java.util.Locale
 import kotlin.math.*
 
 class DashboardView(context: Context) : View(context) {
+    init { setLayerType(View.LAYER_TYPE_SOFTWARE, null) }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val orange = Color.rgb(255, 137, 0)
     private val gold = Color.rgb(255, 190, 25)
@@ -81,7 +82,7 @@ class DashboardView(context: Context) : View(context) {
             val a = Math.toRadians(135.0+i*27.0)
             label(c,n,cx+cos(a).toFloat()*145f,cy+sin(a).toFloat()*145f+8f,20f,white,false,Paint.Align.CENTER)
         }
-        label(c,"BMW",640f,272f,38f,white,true,Paint.Align.CENTER)
+        drawBmwRoundel(c,640f,260f,66f)
         label(c,"68",598f,392f,58f,orange,true,Paint.Align.RIGHT)
         label(c,"km/h",605f,392f,29f,white)
         label(c,"Evening Drive.mp3",640f,425f,21f,white,false,Paint.Align.CENTER)
@@ -149,9 +150,34 @@ class DashboardView(context: Context) : View(context) {
         label(c,"M18",350f,525f,22f,white,true);label(c,"▣",215f,310f,25f,white);label(c,"▣",245f,480f,25f,white)
     }
     private fun panel(c:Canvas,x:Float,y:Float,w:Float,h:Float){
-        p.color=Color.rgb(8,7,6);p.style=Paint.Style.FILL;c.drawRoundRect(RectF(x,y,x+w,y+h),18f,18f,p)
-        p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2f;c.drawRoundRect(RectF(x,y,x+w,y+h),18f,18f,p)
+        val rect=RectF(x,y,x+w,y+h)
+        p.style=Paint.Style.FILL;p.color=Color.rgb(12,7,3)
+        p.setShadowLayer(12f,0f,0f,Color.rgb(255,75,0))
+        c.drawRoundRect(rect,18f,18f,p);p.clearShadowLayer()
+        p.color=Color.rgb(255,105,0);p.style=Paint.Style.STROKE;p.strokeWidth=3f
+        p.setShadowLayer(10f,0f,0f,Color.rgb(255,70,0))
+        c.drawRoundRect(rect,18f,18f,p);p.clearShadowLayer()
+        p.color=Color.rgb(255,205,70);p.strokeWidth=1f
+        c.drawRoundRect(RectF(x+2f,y+2f,x+w-2f,y+h-2f),16f,16f,p)
         p.style=Paint.Style.FILL
+    }
+    private fun drawBmwRoundel(c:Canvas,cx:Float,cy:Float,r:Float){
+        p.style=Paint.Style.FILL;p.color=Color.BLACK
+        p.setShadowLayer(18f,0f,0f,Color.rgb(255,75,0))
+        c.drawCircle(cx,cy,r,p);p.clearShadowLayer()
+        p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=3f
+        c.drawCircle(cx,cy,r-2f,p);c.drawCircle(cx,cy,r-17f,p)
+        p.style=Paint.Style.FILL
+        val blue=Color.rgb(0,160,220)
+        val a=Path().apply{moveTo(cx,cy-42f);lineTo(cx+42f,cy-42f);lineTo(cx+42f,cy);lineTo(cx,cy);close()}
+        p.color=blue;c.drawPath(a,p)
+        val b=Path().apply{moveTo(cx,cy);lineTo(cx-42f,cy);lineTo(cx-42f,cy+42f);lineTo(cx,cy+42f);close()}
+        c.drawPath(b,p)
+        p.color=Color.WHITE;p.style=Paint.Style.STROKE;p.strokeWidth=2f
+        c.drawCircle(cx,cy,42f,p);c.drawCircle(cx,cy,65f,p);p.style=Paint.Style.FILL
+        label(c,"B",cx-38f,cy-46f,18f,white,true)
+        label(c,"M",cx-7f,cy-51f,18f,white,true)
+        label(c,"W",cx+27f,cy-39f,18f,white,true)
     }
     private fun media(c:Canvas,x:Float,y:Float,t:String,big:Boolean){
         p.color=orange;p.style=Paint.Style.STROKE;p.strokeWidth=2.5f;c.drawCircle(x,y,if(big)48f else 36f,p)
