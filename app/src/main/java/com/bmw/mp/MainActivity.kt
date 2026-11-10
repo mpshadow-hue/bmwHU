@@ -23,7 +23,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
 import org.osmdroid.config.Configuration
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.CopyrightOverlay
@@ -46,6 +45,7 @@ class MainActivity : Activity() {
     private var statsMonth = ""
     private val gpsListener = LocationListener { location -> onGpsLocation(location) }
     private val gpsStatusListener = GpsStatus.Listener { updateSatelliteStatus() }
+    private var gpsStatusRegistered = false
     private val musicTracks = mutableListOf<MusicTrack>()
     private var currentTrackIndex = -1
     private var mediaPlayer: MediaPlayer? = null
@@ -60,12 +60,16 @@ class MainActivity : Activity() {
 
         Configuration.getInstance().userAgentValue = packageName
         mapView = MapView(this).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
+            setTileSource(EsriWorldImageryTileSource())
             setMultiTouchControls(true)
             setBuiltInZoomControls(false)
             controller.setZoom(13.5)
             controller.setCenter(GeoPoint(43.8563, 18.4131))
-            overlays.add(CopyrightOverlay(this@MainActivity))
+            overlays.add(CopyrightOverlay(this@MainActivity).apply {
+                setTextColor(android.graphics.Color.WHITE)
+                setTextSize(7)
+                setOffset(3, 5)
+            })
         }
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
         dashboard = DashboardView(this, onMapClick = {
@@ -113,9 +117,18 @@ class MainActivity : Activity() {
             }
         }
         try {
-            locationManager.addGpsStatusListener(gpsStatusListener)
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper())
-        } catch (_: SecurityException) { }
+            if (!gpsStatusRegistered) {
+                locationManager.addGpsStatusListener(gpsStatusListener)
+                gpsStatusRegistered = true
+            }
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper())
+            } else if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000L, 5f, gpsListener, Looper.getMainLooper())
+            }
+        } catch (_: SecurityException) {
+        } catch (_: IllegalArgumentException) {
+        }
     }
 
     override fun onRequestPermissionsResult(requestCode:Int, permissions:Array<out String>, grantResults:IntArray) {
@@ -310,8 +323,13 @@ class MainActivity : Activity() {
         if (::locationManager.isInitialized) {
             try {
                 locationManager.removeUpdates(gpsListener)
-                locationManager.removeGpsStatusListener(gpsStatusListener)
-            } catch (_: SecurityException) { }
+                if (gpsStatusRegistered) {
+                    locationManager.removeGpsStatusListener(gpsStatusListener)
+                    gpsStatusRegistered = false
+                }
+            } catch (_: SecurityException) {
+                gpsStatusRegistered = false
+            }
         }
         super.onPause()
     }
