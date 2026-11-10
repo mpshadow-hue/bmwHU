@@ -115,8 +115,17 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         p.style = Paint.Style.FILL
         listOf("0","20","40","60","80","100","120","140","160","180","200").forEachIndexed { i,n ->
             val a = Math.toRadians(135.0+i*27.0)
-            label(c,n,cx+cos(a).toFloat( )*151f,cy+sin(a).toFloat()*151f+8f,20f,white,false,Paint.Align.CENTER)
+            label(c,n,cx+cos(a).toFloat()*151f,cy+sin(a).toFloat()*151f+8f,20f,white,false,Paint.Align.CENTER)
         }
+        val needleAngle = Math.toRadians(135.0 + (liveSpeedKmh.coerceIn(0f, 200f) / 200.0) * 270.0)
+        p.style = Paint.Style.STROKE
+        p.color = Color.rgb(255, 218, 90)
+        p.strokeWidth = 5f
+        p.setShadowLayer(12f, 0f, 0f, Color.rgb(255, 95, 0))
+        c.drawLine(cx, cy, cx + cos(needleAngle).toFloat() * 183f, cy + sin(needleAngle).toFloat() * 183f, p)
+        p.clearShadowLayer()
+        p.style = Paint.Style.FILL
+        c.drawCircle(cx, cy, 8f, p)
         drawBmwRoundel(c,640f,260f,66f)
         label(c,String.format(Locale.US, "%.0f", liveSpeedKmh),598f,392f,58f,orange,true,Paint.Align.RIGHT)
         label(c,"km/h",605f,392f,29f,white)
@@ -149,7 +158,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
             }
         }
         panel(c,880f,465f,376f,66f)
-        label(c,shuffleEnabled ? "⤨  Shuffle ON" : "⤨  Shuffle",910f,507f,21f,shuffleEnabled ? gold : white)
+        label(c,if (shuffleEnabled) "⤨  Shuffle ON" else "⤨  Shuffle",910f,507f,21f,if (shuffleEnabled) gold else white)
         label(c,"☷  A-Z",1090f,507f,21f,white)
 
         // Bottom menu: two custom app slots
