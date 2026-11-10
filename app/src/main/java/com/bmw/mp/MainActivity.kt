@@ -89,11 +89,12 @@ class MainActivity : Activity() {
     }
 
     private fun enableLiveLocation() {
-        if (locationOverlay != null) return
-        locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), mapView).also {
-            it.enableMyLocation()
-            it.enableFollowLocation()
-            mapView.overlays.add(it)
+        if (locationOverlay == null) {
+            locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), mapView).also {
+                it.enableMyLocation()
+                it.enableFollowLocation()
+                mapView.overlays.add(it)
+            }
         }
         try {
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, gpsListener, Looper.getMainLooper())
