@@ -36,7 +36,11 @@ class MainActivity : Activity() {
             overlays.add(CopyrightOverlay(this@MainActivity))
         }
         val root = FrameLayout(this)
-        root.addView(DashboardView(this), FrameLayout.LayoutParams(-1, -1))
+        root.addView(DashboardView(this) {
+            mapView.controller.setZoom(15.0)
+            mapView.controller.animateTo(GeoPoint(43.8563, 18.4131))
+            mapView.invalidate()
+        }, FrameLayout.LayoutParams(-1, -1))
         root.addView(mapView, FrameLayout.LayoutParams(1, 1))
         root.addOnLayoutChangeListener { _, l, t, r, b, _, _, _, _ ->
             val w=r-l; val h=b-t
