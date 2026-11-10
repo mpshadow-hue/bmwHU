@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.View
 import android.widget.FrameLayout
+import androidx.core.content.ContextCompat
 import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
@@ -44,10 +45,10 @@ class MainActivity : Activity() {
             val ox=((w-1280f*scale)/2f).toInt()
             val oy=((h-720f*scale)/2f).toInt()
             val lp=mapView.layoutParams as FrameLayout.LayoutParams
-            lp.width=(394f*scale).toInt()
-            lp.height=(329f*scale).toInt()
-            lp.leftMargin=ox+(15f*scale).toInt()
-            lp.topMargin=oy+(213f*scale).toInt()
+            lp.width=(380f*scale).toInt()
+            lp.height=(321f*scale).toInt()
+            lp.leftMargin=ox+(22f*scale).toInt()
+            lp.topMargin=oy+(217f*scale).toInt()
             mapView.layoutParams=lp
         }
         setContentView(root)
