@@ -108,6 +108,33 @@ class MainActivity : Activity() {
         ensurePermissions()
     }
 
+
+    private fun createGpsArrow(): android.graphics.Bitmap {
+        val size = 64
+        val bitmap = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bitmap)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val path = android.graphics.Path().apply {
+            moveTo(32f, 4f)
+            lineTo(55f, 56f)
+            lineTo(32f, 44f)
+            lineTo(9f, 56f)
+            close()
+        }
+        paint.color = android.graphics.Color.WHITE
+        canvas.drawPath(path, paint)
+        val inner = android.graphics.Path().apply {
+            moveTo(32f, 12f)
+            lineTo(48f, 49f)
+            lineTo(32f, 40f)
+            lineTo(16f, 49f)
+            close()
+        }
+        paint.color = android.graphics.Color.rgb(0, 145, 255)
+        canvas.drawPath(inner, paint)
+        return bitmap
+    }
+
     private fun ensurePermissions() {
         val required = mutableListOf<String>()
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) required.add(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -122,6 +149,9 @@ class MainActivity : Activity() {
     private fun enableLiveLocation() {
         if (locationOverlay == null) {
             locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), mapView).also {
+                val arrow = createGpsArrow()
+                it.setPersonIcon(arrow)
+                it.setDirectionArrow(arrow)
                 it.enableMyLocation()
                 it.enableFollowLocation()
                 mapView.overlays.add(it)
