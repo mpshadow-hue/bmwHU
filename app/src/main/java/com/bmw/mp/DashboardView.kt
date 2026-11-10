@@ -171,17 +171,17 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         panel(c,26f,606f,1228f,78f)
         val separators = floatArrayOf(312f,562f,755f,945f)
         separators.forEach { x -> p.color=orange;p.strokeWidth=1f;c.drawLine(x,621f,x,670f,p) }
-        label(c,"●",150f,652f,28f,orange,true,Paint.Align.CENTER)
+        drawMapPin(c,150f,644f,orange)
         label(c,"Mapa",188f,652f,21f,white)
-        label(c,"▣",400f,652f,28f,orange,true,Paint.Align.CENTER)
+        drawRadioIcon(c,400f,644f,orange)
         label(c,"Radio",438f,652f,21f,white)
         val shortcut0 = slotLabel(0)
         val shortcut1 = slotLabel(1)
-        label(c,if(shortcut0=="+") "+" else "▣",655f,652f,30f,if(shortcut0=="+") gold else orange,true,Paint.Align.CENTER)
+        drawShortcutIcon(c,655f,644f,shortcut0=="+")
         if(shortcut0!="+") label(c,shortcut0.take(10),690f,652f,16f,white)
-        label(c,if(shortcut1=="+") "+" else "▣",850f,652f,30f,if(shortcut1=="+") gold else orange,true,Paint.Align.CENTER)
+        drawShortcutIcon(c,850f,644f,shortcut1=="+")
         if(shortcut1!="+") label(c,shortcut1.take(10),885f,652f,16f,white)
-        label(c,"▦",1010f,652f,28f,white,true,Paint.Align.CENTER)
+        drawAppsIcon(c,1010f,644f,white)
         label(c,"Aplikacije",1068f,652f,21f,white)
         if(notice.isNotEmpty()) label(c,notice,640f,596f,15f,gold,false,Paint.Align.CENTER)
         c.restore()
@@ -246,6 +246,57 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                 p.style = Paint.Style.FILL
                 c.drawCircle(cx,cy,3f,p)
             }
+        }
+        p.style = Paint.Style.FILL
+    }
+
+    private fun drawMapPin(c: Canvas, cx: Float, cy: Float, color: Int) {
+        p.style = Paint.Style.FILL
+        p.color = color
+        val path = Path().apply {
+            moveTo(cx,cy+17f)
+            cubicTo(cx+7f,cy+6f,cx+15f,cy-3f,cx+15f,cy-10f)
+            cubicTo(cx+15f,cy-28f,cx-15f,cy-28f,cx-15f,cy-10f)
+            cubicTo(cx-15f,cy-3f,cx-7f,cy+6f,cx,cy+17f)
+            close()
+        }
+        c.drawPath(path,p)
+        p.color = Color.BLACK
+        c.drawCircle(cx,cy-10f,5f,p)
+    }
+
+    private fun drawRadioIcon(c: Canvas, cx: Float, cy: Float, color: Int) {
+        p.style = Paint.Style.STROKE
+        p.color = color
+        p.strokeWidth = 3f
+        p.strokeCap = Paint.Cap.ROUND
+        c.drawRoundRect(RectF(cx-16f,cy-9f,cx+16f,cy+13f),3f,3f,p)
+        c.drawLine(cx-10f,cy-12f,cx+15f,cy-23f,p)
+        c.drawCircle(cx-7f,cy+2f,4f,p)
+        c.drawLine(cx+2f,cy-3f,cx+11f,cy-3f,p)
+        c.drawLine(cx+2f,cy+4f,cx+11f,cy+4f,p)
+        p.style = Paint.Style.FILL
+    }
+
+    private fun drawShortcutIcon(c: Canvas, cx: Float, cy: Float, empty: Boolean) {
+        p.style = Paint.Style.STROKE
+        p.color = if (empty) gold else orange
+        p.strokeWidth = 3.5f
+        c.drawCircle(cx,cy,22f,p)
+        p.strokeWidth = 4f
+        c.drawLine(cx-11f,cy,cx+11f,cy,p)
+        c.drawLine(cx,cy-11f,cx,cy+11f,p)
+        p.style = Paint.Style.FILL
+    }
+
+    private fun drawAppsIcon(c: Canvas, cx: Float, cy: Float, color: Int) {
+        p.style = Paint.Style.STROKE
+        p.color = color
+        p.strokeWidth = 2.5f
+        for (row in 0..1) for (col in 0..1) {
+            val x = cx - 13f + col * 17f
+            val y = cy - 13f + row * 17f
+            c.drawRoundRect(RectF(x,y,x+11f,y+11f),2f,2f,p)
         }
         p.style = Paint.Style.FILL
     }
