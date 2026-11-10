@@ -250,7 +250,7 @@ class MainActivity : Activity() {
             locationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(this), mapView).also {
                 val arrow = createGpsArrow()
                 it.setPersonIcon(arrow)
-                it.setDirectionArrow(arrow)
+                it.setDirectionArrow(arrow, arrow)
                 it.enableMyLocation()
                 it.enableFollowLocation()
                 mapView.overlays.add(it)
