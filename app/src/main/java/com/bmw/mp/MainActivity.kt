@@ -72,7 +72,7 @@ class MainActivity : Activity() {
             mapView.controller.setZoom(15.0)
             mapView.controller.animateTo(GeoPoint(43.8563, 18.4131))
             mapView.invalidate()
-        }, onTrackSelected = { track -> playTrack(musicTracks.indexOfFirst { it.uri == track.uri }) }, onPrevious = { playPrevious() }, onPlayPause = { togglePlayback() }, onNext = { playNext() }, onShuffle = { shufflePlayback = !shufflePlayback }, onSort = { sortMusicAlphabetically() })
+        }, onTrackSelected = { track -> playTrack(musicTracks.indexOfFirst { it.uri == track.uri }) }, onPrevious = { playPrevious() }, onPlayPause = { togglePlayback() }, onNext = { playNext() }, onShuffle = { shufflePlayback = !shufflePlayback }, onSort = { sortMusicAlphabetically() }, onReloadMusic = { loadMusicLibrary() })
         val root = FrameLayout(this)
         root.addView(dashboard, FrameLayout.LayoutParams(-1, -1))
         root.addView(mapView, FrameLayout.LayoutParams(1, 1))
