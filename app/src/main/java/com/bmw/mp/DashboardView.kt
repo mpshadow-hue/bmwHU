@@ -328,6 +328,23 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}) :
                 catch (_: Exception) { notice = "Bluetooth postavke nisu dostupne" }
                 return true
             }
+            if (y in 500f..595f) {
+                when {
+                    x in 455f..570f -> onPrevious()
+                    x in 585f..695f -> onPlayPause()
+                    x in 710f..835f -> onNext()
+                }
+                return true
+            }
+            if (y in 465f..535f && x in 875f..1260f) {
+                if (x < 1065f) onShuffle() else onSort()
+                return true
+            }
+            if (y in 80f..430f && x in 875f..1260f) {
+                val index = ((y - 88f) / 47f).toInt()
+                musicTracks.getOrNull(index)?.let { onTrackSelected(it) }
+                return true
+            }
             if(y in 612f..700f){
                 val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
                 when(i) {
