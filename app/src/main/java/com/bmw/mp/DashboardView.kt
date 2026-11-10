@@ -63,7 +63,7 @@ class DashboardView(context: Context) : View(context) {
         metric(c, 25f, 123f, "avg/tdy", "42.3", "km/h", "◴")
         metric(c, 215f, 123f, "max/tdy", "118", "km/h", "◴")
 
-        panel(c, 12f, 210f, 400f, 335f); drawMap(c)
+        panel(c, 12f, 210f, 400f, 335f)
         panel(c, 25f, 557f, 160f, 38f); label(c, "● GPS 8/14", 40f, 583f, 18f, white, true)
 
         // Speedometer
