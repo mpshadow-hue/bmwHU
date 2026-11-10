@@ -2,6 +2,9 @@ package com.bmw.mp
 
 import android.content.Context
 import android.content.Intent
+import android.bluetooth.BluetoothAdapter
+import android.net.wifi.WifiManager
+import android.provider.Settings
 import android.app.AlertDialog
 import android.graphics.*
 import android.view.MotionEvent
@@ -37,8 +40,20 @@ class DashboardView(context: Context) : View(context) {
 
         label(c, SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()), 640f, 48f, 42f, white, true, Paint.Align.CENTER)
         postInvalidateDelayed(30_000L)
-        panel(c, 462f, 64f, 62f, 58f); label(c, "◔", 493f, 105f, 38f, gold, true, Paint.Align.CENTER)
-        panel(c, 756f, 64f, 62f, 58f); label(c, "ᛒ", 787f, 105f, 38f, gold, true, Paint.Align.CENTER)
+        val wifiOn = try {
+            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wm.isWifiEnabled
+        } catch (_: Exception) { false }
+        val bluetoothOn = try {
+            BluetoothAdapter.getDefaultAdapter()?.isEnabled == true
+        } catch (_: Exception) { false }
+        panel(c, 462f, 64f, 62f, 58f)
+        label(c, if (wifiOn) "◔" else "×", 493f, 105f, 38f, if (wifiOn) gold else Color.GRAY, true, Paint.Align.CENTER)
+        panel(c, 756f, 64f, 62f, 58f)
+        label(c, "ᛒ", 787f, 105f, 38f, if (bluetoothOn) gold else Color.GRAY, true, Paint.Align.CENTER)
+        label(c, if (wifiOn) "on" else "off", 493f, 139f, 12f, white, false, Paint.Align.CENTER)
+        label(c, if (bluetoothOn) "on" else "off", 787f, 139f, 12f, white, false, Paint.Align.CENTER)
+        postInvalidateDelayed(2_000L)
 
         panel(c, 12f, 8f, 400f, 102f)
         metric(c, 25f, 17f, "tdy", "12.4", "km", "╱")
@@ -182,6 +197,16 @@ class DashboardView(context: Context) : View(context) {
         if(e.action==MotionEvent.ACTION_UP){
             val s=min(width/1280f,height/720f)
             val x=(e.x-(width-1280f*s)/2f)/s;val y=(e.y-(height-720f*s)/2f)/s
+            if (y in 55f..150f && x in 440f..535f) {
+                try { context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                catch (_: Exception) { notice = "Wi-Fi postavke nisu dostupne" }
+                return true
+            }
+            if (y in 55f..150f && x in 735f..835f) {
+                try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                catch (_: Exception) { notice = "Bluetooth postavke nisu dostupne" }
+                return true
+            }
             if(y in 612f..700f){
                 val i=((x-26f)/(1228f/5f)).toInt().coerceIn(0,4)
                 when(i) {
