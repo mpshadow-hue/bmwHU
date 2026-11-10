@@ -304,11 +304,35 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
     }
 
     private fun openRadio() {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC)
-        val matches = context.packageManager.queryIntentActivities(intent, 0)
-        if (matches.isEmpty()) { notice = "Nije pronađena muzička/radio aplikacija"; invalidate(); return }
-        try { context.startActivity(Intent.createChooser(intent, "Otvori muziku ili radio").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        catch (_: Exception) { notice = "Radio aplikacija nije dostupna"; invalidate() }
+        val query = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        val candidates = context.packageManager.queryIntentActivities(query, 0)
+        val radios = candidates.filter {
+            val name = it.loadLabel(context.packageManager).toString().lowercase(Locale.getDefault())
+            name.contains("radio") || name.contains("fm ")
+        }.sortedBy { it.loadLabel(context.packageManager).toString().lowercase(Locale.getDefault()) }
+
+        if (radios.isNotEmpty()) {
+            val labels = radios.map { it.loadLabel(context.packageManager).toString() }.toTypedArray()
+            if (radios.size == 1) {
+                val launch = context.packageManager.getLaunchIntentForPackage(radios[0].activityInfo.packageName)
+                if (launch != null) context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } else {
+                AlertDialog.Builder(context).setTitle("Odaberi radio aplikaciju").setItems(labels) { _, which ->
+                    val launch = context.packageManager.getLaunchIntentForPackage(radios[which].activityInfo.packageName)
+                    if (launch != null) context.startActivity(launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                }.setNegativeButton("Odustani", null).show()
+            }
+            return
+        }
+
+        val musicIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC)
+        if (context.packageManager.queryIntentActivities(musicIntent, 0).isNotEmpty()) {
+            try { context.startActivity(Intent.createChooser(musicIntent, "Otvori muzički plejer").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            catch (_: Exception) { notice = "Nije pronađena radio aplikacija"; invalidate() }
+        } else {
+            notice = "Nije pronađena radio aplikacija"
+            invalidate()
+        }
     }
 
     private fun openAllApps() {
@@ -322,9 +346,9 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
         }.setNegativeButton("Zatvori", null).show()
     }
 
-    private fun handleShortcut(slot: Int) {
+    private fun handleShortcut(slot: Int, forceChoose: Boolean = false) {
         val pkg = slotPackage(slot)
-        if (pkg != null) {
+        if (!forceChoose && pkg != null) {
             val launch = context.packageManager.getLaunchIntentForPackage(pkg)
             if (launch != null) {
                 launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -402,7 +426,7 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                 if (y in 612f..700f) {
                     val index = ((x - 26f) / (1228f / 5f)).toInt().coerceIn(0, 4)
                     when (index) {
-                        2, 3 -> handleShortcut(index - 2)
+                        2, 3 -> handleShortcut(index - 2, e.eventTime - e.downTime >= 600L)
                         0 -> { onMapClick(); notice = "Mapa – prikaz Sarajeva" }
                         1 -> openRadio()
                         4 -> openAllApps()
