@@ -1,6 +1,19 @@
 package com.bmw.mp
 
 import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.drawable.BitmapDrawable
+import android.content.res.Resources
+import org.json.JSONObject
+import org.osmdroid.views.overlay.Marker
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLEncoder
+import kotlin.concurrent.thread
 import android.app.Activity
 import android.content.pm.PackageManager
 import android.content.Context
@@ -34,6 +47,8 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 class MainActivity : Activity() {
     private lateinit var mapView: MapView
     private var locationOverlay: MyLocationNewOverlay? = null
+    private val radarMarkers = mutableListOf<Marker>()
+    private val radarPrefs by lazy { getSharedPreferences("offline_radars", Context.MODE_PRIVATE) }
     private val locationRequest = 701
     private lateinit var dashboard: DashboardView
     private lateinit var locationManager: LocationManager
@@ -83,6 +98,8 @@ class MainActivity : Activity() {
             })
         }
         locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+        loadCachedRadars()
+        refreshRadarDatabase()
         dashboard = DashboardView(this, onMapClick = {
             mapView.controller.setZoom(15.0)
             mapView.controller.animateTo(GeoPoint(43.8563, 18.4131))
@@ -133,6 +150,88 @@ class MainActivity : Activity() {
         paint.color = android.graphics.Color.rgb(0, 145, 255)
         canvas.drawPath(inner, paint)
         return bitmap
+    }
+
+
+    private fun radarIcon(): BitmapDrawable {
+        val size = 72
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.color = android.graphics.Color.rgb(255, 65, 0)
+        paint.setShadowLayer(8f, 0f, 0f, android.graphics.Color.RED)
+        canvas.drawCircle(36f, 36f, 29f, paint)
+        paint.clearShadowLayer()
+        paint.color = android.graphics.Color.WHITE
+        paint.strokeWidth = 5f
+        paint.style = Paint.Style.STROKE
+        canvas.drawCircle(36f, 36f, 23f, paint)
+        paint.style = Paint.Style.FILL
+        paint.color = android.graphics.Color.WHITE
+        canvas.drawRoundRect(RectF(22f, 25f, 50f, 46f), 5f, 5f, paint)
+        paint.color = android.graphics.Color.rgb(255, 65, 0)
+        canvas.drawCircle(29f, 35f, 4f, paint)
+        canvas.drawCircle(43f, 35f, 4f, paint)
+        return BitmapDrawable(resources, bitmap)
+    }
+
+    private fun renderRadarMarkers(json: String) {
+        try {
+            val root = JSONObject(json)
+            val elements = root.optJSONArray("elements") ?: return
+            val icon = radarIcon()
+            radarMarkers.forEach { mapView.overlays.remove(it) }
+            radarMarkers.clear()
+            for (i in 0 until elements.length()) {
+                val item = elements.optJSONObject(i) ?: continue
+                val lat = if (item.has("lat")) item.optDouble("lat", Double.NaN) else item.optJSONObject("center")?.optDouble("lat", Double.NaN) ?: Double.NaN
+                val lon = if (item.has("lon")) item.optDouble("lon", Double.NaN) else item.optJSONObject("center")?.optDouble("lon", Double.NaN) ?: Double.NaN
+                if (!lat.isFinite() || !lon.isFinite()) continue
+                val tags = item.optJSONObject("tags")
+                val marker = Marker(mapView).apply {
+                    position = GeoPoint(lat, lon)
+                    title = "Stacionarni radar"
+                    snippet = tags?.optString("maxspeed")?.takeIf { it.isNotBlank() }?.let { "Ograničenje: $it" } ?: "Provjeri ograničenje na saobraćajnom znaku"
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    setIcon(icon)
+                }
+                radarMarkers.add(marker)
+                mapView.overlays.add(marker)
+            }
+            mapView.invalidate()
+        } catch (_: Exception) { }
+    }
+
+    private fun loadCachedRadars() {
+        val cached = radarPrefs.getString("geojson", null) ?: return
+        renderRadarMarkers(cached)
+    }
+
+    private fun refreshRadarDatabase() {
+        thread(name = "radar-data-update") {
+            var connection: HttpURLConnection? = null
+            try {
+                val query = "[out:json][timeout:25];(nwr[\"highway\"=\"speed_camera\"](42.5,15.7,45.3,19.7););out center;"
+                val encoded = URLEncoder.encode(query, "UTF-8")
+                connection = (URL("https://overpass-api.de/api/interpreter?data=$encoded").openConnection() as HttpURLConnection).apply {
+                    connectTimeout = 15000
+                    readTimeout = 30000
+                    requestMethod = "GET"
+                    setRequestProperty("User-Agent", "BMW-MP-Launcher/1.0")
+                }
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val data = connection.inputStream.bufferedReader().use { it.readText() }
+                    if (data.contains("\"elements\"")) {
+                        radarPrefs.edit().putString("geojson", data).putLong("updated_at", System.currentTimeMillis()).apply()
+                        runOnUiThread { renderRadarMarkers(data) }
+                    }
+                }
+            } catch (_: Exception) {
+                // Keep the last downloaded radar set available offline.
+            } finally {
+                connection?.disconnect()
+            }
+        }
     }
 
     private fun ensurePermissions() {
