@@ -543,7 +543,13 @@ class DashboardView(context: Context, private val onMapClick: () -> Unit = {}, p
                     return true
                 }
                 if (y in 612f..700f) {
-                    val index = ((x - 26f) / (1228f / 5f)).toInt().coerceIn(0, 4)
+                    val index = when {
+                        x < 312f -> 0
+                        x < 562f -> 1
+                        x < 755f -> 2
+                        x < 945f -> 3
+                        else -> 4
+                    }
                     when (index) {
                         2, 3 -> handleShortcut(index - 2, e.eventTime - e.downTime >= 600L)
                         0 -> { onMapClick(); notice = "Mapa – prikaz Sarajeva" }
